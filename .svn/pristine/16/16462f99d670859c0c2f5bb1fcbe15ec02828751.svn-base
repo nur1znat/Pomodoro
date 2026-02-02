@@ -1,0 +1,60 @@
+#pragma once
+#ifndef OPT_PROBLEMS_H
+#define OPT_PROBLEMS_H
+
+#include <cmath>
+#include <complex>
+#include <initializer_list>
+#include <iostream>
+#include <utility>
+
+#include <pagmo/problem.hpp>
+#include <pagmo/types.hpp>
+
+using namespace pagmo;
+using namespace std;
+
+//problem data structure
+struct opt_problem_data
+{
+	double wavelength;
+	double waveangle;
+	complex<double> sigma;
+	unsigned int refinement_level;
+};
+
+//General optimization problem with a dummy objective function and side constraints
+class opt_problem
+{
+public:
+	opt_problem(unsigned int problem_size = 0) : m_problem_size(problem_size) {}
+	~opt_problem() {}
+	virtual vector_double fitness(const vector_double& v) const { return { 0 }; }
+	pair<vector_double, vector_double> get_bounds() const;
+	void set_bounds(vector<double> lb, vector<double> ub);
+	void set_problem_size(unsigned int size) { m_problem_size = size; m_lb.resize(0); m_ub.resize(0); }
+protected:
+	unsigned int m_problem_size;
+	vector<double> m_lb;
+	vector<double> m_ub;
+};
+
+//Single nanotube optimization problem target maximization of interior concentration subject to an area constraint
+class opt_max_concentration1 : public opt_problem
+{
+public:
+	opt_max_concentration1(unsigned int problem_size = 0) : opt_problem(problem_size), m_area(0) {}
+	~opt_max_concentration1() {}
+	opt_max_concentration1(unsigned int problem_size, double area) : opt_problem(problem_size), m_area(fabs(area)) {}
+	opt_max_concentration1(unsigned int problem_size, double area, opt_problem_data d) : opt_problem(problem_size), m_area(fabs(area)), m_data(d) {}
+	opt_max_concentration1(const opt_max_concentration1& o);
+	void set_problem_data(opt_problem_data d) { m_data = { d.wavelength, d.waveangle, d.sigma, d.refinement_level }; }
+	void set_area_constraint(double area) { m_area = fabs(area); }
+	double get_area_constraint() { return m_area; }
+	vector_double fitness(const vector_double& v) const;
+private:
+	double m_area;
+	opt_problem_data m_data;
+};
+
+#endif

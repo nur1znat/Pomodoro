@@ -1,0 +1,158 @@
+#include "opt_problems.h"
+#include <pagmo/archipelago.hpp>
+#include <pagmo/algorithm.hpp>
+#include <pagmo/algorithms/compass_search.hpp>
+#include <pagmo/algorithms/nlopt.hpp>
+#include <pagmo/algorithms/gaco.hpp>
+#include <pagmo/algorithms/ihs.hpp>
+#include <pagmo/population.hpp>
+#include "tbb/tick_count.h"
+#include <boost/program_options.hpp>
+
+using namespace pagmo;
+using namespace std;
+using namespace boost::program_options;
+
+int main(int argc, char* argv[])
+{
+	double wavelength = 1;
+	double waveangle = 0;
+	double area0 = 1.5;
+	unsigned int param_size = 10;
+	vector<double> sigma_val = { 0.001, 0.001 };
+	unsigned int refinement_level = 5;
+	string algorithm_name = "cobyla";
+	unsigned int verbosity = 1;
+	unsigned int algorithm_type = 0;
+	try
+	{
+		options_description desc("Optimization options");
+		desc.add_options()
+			("help", "Usage:")
+			("np", value(&param_size), "number of parameters for tube parametric model, e.g., --np 10")
+			("wl", value(&wavelength), "source signal wavelength, e.g., --wl 1")
+			("wa", value(&waveangle), "source signal angle, e.g., --wa 30")
+			("a", value(&area0), "Target area for nanotube, e.g., --a 1.56")
+			("s", value<vector<double> >(&sigma_val)->multitoken(), "Sigma value for nanotube, e.g., --s 1 -.01")
+			("r", value(&refinement_level), "Refinement level when calculating electrical field, e.g., --r 5")
+			("o", value(&algorithm_name), "Optimization algorithm, e.g., --o cobyla")
+			("verbosity", value(&verbosity), "Verbosity level (0 silent, 1 verbose)");
+			variables_map vm;
+		store(parse_command_line(argc, argv, desc, command_line_style::unix_style ^ command_line_style::allow_short), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return 0;
+		}
+		if (vm.count("o")) {
+			if (algorithm_name == "cobyla")
+				algorithm_type = 0;
+			else if (algorithm_name == "compass_search")
+				algorithm_type = 1;
+			else if (algorithm_name == "gaco")
+				algorithm_type = 2;
+			else if (algorithm_name == "praxis")
+				algorithm_type = 3;
+			else if (algorithm_name == "ihs")
+				algorithm_type = 4;
+			else
+			{
+				cout << "Algorithm not supported, exiting...";
+				return 0;
+			}
+		}
+
+	}
+	catch (exception& e) {
+		cerr << e.what() << "\n";
+	}
+	complex<double> sigma(sigma_val[0], sigma_val[1]);
+	if (verbosity)
+	{
+		cout << "- Problem parameters -\n";
+		cout << "Number of parameters:" << param_size << endl;
+		cout << "Wavelength:" << wavelength << endl;
+		cout << "Waveangle:" << waveangle << endl;
+		cout << "Nanotube area:" << area0 << endl;
+		cout << "Surface conductivity:" << sigma << endl;
+		cout << "Refinement level:" << refinement_level << endl;
+		cout << "Optimization algorithm:" << algorithm_name << endl;
+	}
+	opt_problem_data d = { wavelength, waveangle, sigma, refinement_level };
+	algorithm opt_alg;
+	switch (algorithm_type)
+	{
+	case 0:
+	{
+		//NLopt optimizer COBYLA : Constrained Optimization BY Linear Approximations
+		nlopt solver("cobyla");
+		solver.set_selection("best");
+		opt_alg = algorithm{ solver };
+		break;
+	}
+	case 1:
+	{
+		//compass_search optimizer (similar to pattern search) with 1e5 allowed f calculations, .2 initial step and 1e-4 as the terminating step
+		compass_search solver(1e5, .2, 1e-4);
+		solver.set_selection("best");
+		opt_alg = algorithm{ solver };
+		break;
+	}
+	case 2:
+	{
+		//Extended Ant Colony Optimization with 100 generations, 
+		gaco solver(100);
+		opt_alg = algorithm{ solver };
+		break;
+	}
+	case 3:
+	{
+		//gradient-free local optimization via the "principal-axis method" 
+		nlopt solver("praxis");
+		solver.set_selection("best");
+		opt_alg = algorithm{ solver };
+		break;
+	}
+	case 4:
+	{
+		//Improved Harmony Search with 100 generations
+		ihs solver(100);
+		opt_alg = algorithm{ solver };
+		break;
+	}
+	default:
+		cerr << "No appropriate optimizer found\n";
+		return 0;
+	}
+	opt_max_concentration1 opt_p = opt_max_concentration1(param_size);
+	opt_p.set_problem_data(d);
+	opt_p.set_area_constraint(area0);
+	problem pp(opt_p);
+	if (verbosity)
+		cout << pp;
+
+	unsigned int generations = 100;
+	unsigned int initial_population_size = 100;
+	unsigned int islands_number = 16;
+
+
+	
+	opt_alg.set_verbosity(verbosity);
+	//Create initial population
+	//tbb::tick_count t0 = tbb::tick_count::now();
+	population pop{ pp,initial_population_size };
+	/*cout << pop;
+	printf("Calculation of initial population took %g seconds\n", (t1 - t0).seconds());*/
+	//tbb::tick_count t1 = tbb::tick_count::now();
+	pop = opt_alg.evolve(pop);
+	cout << "Best value:" << pop.champion_f()[0] << " at: " << vector2str(pop.champion_x()) << endl;
+	/*archipelago archi{ islands_number, opt_alg, pp, initial_population_size };
+	archi.evolve(1);
+	archi.wait_check();
+	for (const auto& isl : archi) {
+		cout << isl.get_population().champion_f()[0] << " at: " << vector2str(isl.get_population().champion_x()) << '\n';
+	}*/
+	return EXIT_SUCCESS;
+	
+
+}

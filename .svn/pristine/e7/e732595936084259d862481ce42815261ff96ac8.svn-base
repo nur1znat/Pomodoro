@@ -1,0 +1,23 @@
+#pragma once
+#ifndef SPECIAL_FUNCTIONS_H
+#define SPECIAL_FUNCTIONS_H
+
+#include <cmath>
+#include <complex>
+#include <valarray>
+#include "GoTools/utils/Point.h"
+#include <gsl/gsl_complex.h>
+#include <gsl/gsl_complex_math.h>
+
+using namespace std;
+using namespace Go;
+const complex<double> i_unit(0.0, 1.0);
+valarray<complex<double> > toComplexArray(valarray<double> a);
+valarray<valarray<double> > transposeArray(valarray<valarray<double> >a);
+valarray<complex<double> > NormOfPointsInVector(vector<Point> a);
+gsl_complex toGSLcomplex(complex<double> c) { gsl_complex z; GSL_SET_COMPLEX(&z, c.real(), c.imag()); return z; }
+complex<double> E_plane_back(Point a, double wavelength, double theta);
+string point2str(Point a, bool addCR = false) { ostringstream ss; string s = (addCR) ? "\n" : ""; ss << "(" << to_string(a[0]) << "," << to_string(a[1]) << "," << to_string(a[2]) << ")" << s; return ss.str(); }
+complex<double>  Green(Point p0, Point p, double wavelength);
+valarray<complex<double> > Green(Point p0, vector<Point> p, double wavelength);
+#endif

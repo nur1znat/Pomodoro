@@ -1,0 +1,66 @@
+project (WICAN_2D_Solver)
+cmake_minimum_required (VERSION 2.9)
+
+
+SET(WICAN2D_SOURCE_DIR ~/dev/WICAN)
+SET(GMSH_LIB /home/dev-libs/gmsh/lib/libgmsh.so)
+SET(GMSH_INCLUDE_DIR /home/dev-libs/gmsh/include)
+SET(CMAKE_C_COMPILER   /opt/ohpc/pub/mpi/openmpi4-gnu9/4.1.1/bin/mpicc)
+SET(CMAKE_CXX_COMPILER /opt/ohpc/pub/mpi/openmpi4-gnu9/4.1.1/bin/mpic++)
+
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+    ${CMAKE_HOME_DIRECTORY}/usr/share/cmake/Modules
+    ${CMAKE_INSTALL_PREFIX}/usr/share/cmake/Modules
+    "${WICAN2D_SOURCE_DIR}/CMakeModules"
+    "./cmake/Modules"
+    "~/cmake/Modules"
+    "C:/cmake/Modules")
+
+FIND_PACKAGE(Boost REQUIRED)
+FIND_PACKAGE(GSL REQUIRED)
+FIND_PACKAGE(OpenMPI REQUIRED)
+FIND_PACKAGE(SISL REQUIRED)
+FIND_PACKAGE(GoTools REQUIRED)
+FIND_PACKAGE(IGES REQUIRED)
+FIND_PACKAGE(Pagmo REQUIRED)
+FIND_PACKAGE(TBB REQUIRED)
+
+# Include directories
+INCLUDE_DIRECTORIES(
+  ${GOTOOLS_INCLUDE_DIR}
+  ${SISL_INCLUDE_DIR}
+  ${GSL_INCLUDE_DIR}
+  ${OpenMPI_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIRS}
+  ${WICAN2D_SOURCE_DIR}/include
+  ${IGES_INCLUDE_DIR}
+  ${GMSH_INCLUDE_DIR}
+  )
+
+
+set(CMAKE_CXX_FLAGS "-O3 -Wl,--allow-multiple-definition -std=c++17 -lpthread -Wall -pedantic -fpermissive -w") #Wl for multiple definitions
+
+# Linked in libraries
+
+SET(DEPLIBS
+   ${IGES_LIBRARIES}
+   ${GOTOOLS_LIBRARIES}
+   ${SISL_LIBRARIES}
+   ${OpenMPI_LIBRARIES}
+   ${GSL_LIBRARIES}
+   ${GMSH_LIB}
+  )
+
+FILE(GLOB_RECURSE wican2D_SRCS src/*.cpp include/*.h)
+
+ADD_LIBRARY(wican2D ${wican2D_SRCS})
+TARGET_LINK_LIBRARIES(wican2D TBB::tbb ${DEPLIBS})
+
+ADD_EXECUTABLE(test_splineCurve apps/test_splineCurve.cpp)
+TARGET_LINK_LIBRARIES(test_splineCurve wican2D ${DEPLIBS})
+
+ADD_EXECUTABLE(test_mesh apps/test_mesh.cpp)
+TARGET_LINK_LIBRARIES(test_mesh wican2D ${DEPLIBS})
+
+ADD_EXECUTABLE(test_pagmo apps/test_pagmo.cpp)
+TARGET_LINK_LIBRARIES(test_pagmo wican2D Pagmo::pagmo ${DEPLIBS})

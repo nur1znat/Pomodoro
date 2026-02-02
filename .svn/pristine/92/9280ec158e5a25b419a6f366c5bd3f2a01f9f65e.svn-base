@@ -1,0 +1,19 @@
+
+
+IF(OpenMPI_INCLUDE_DIR AND OpenMPI_LIBRARIES)
+  # Already in cache, be silent
+  set(OpenMPI_FIND_QUIETLY TRUE)
+ENDIF(OpenMPI_INCLUDE_DIR AND OpenMPI_LIBRARIES)
+
+find_path(OpenMPI_INCLUDE_DIR 
+			NAMES mpi.h
+			PATHS /usr/lib/x86_64-linux-gnu/openmpi/include/)
+
+find_library(OpenMPI_LIBRARIES 
+            NAMES libmpi.so
+            PATHS /usr/lib/x86_64-linux-gnu/openmpi/lib)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenMPI DEFAULT_MSG OpenMPI_INCLUDE_DIR OpenMPI_LIBRARIES)
+
+mark_as_advanced(OpenMPI_INCLUDE_DIR OpenMPI_LIBRARIES)

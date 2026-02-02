@@ -1,0 +1,246 @@
+#include <mpi.h>
+#include <iostream>
+#include "analysis_NURBSCurve.h"
+
+#include <stdlib.h>
+
+using namespace std;
+using namespace Go;
+
+void broadcastCurveData(analysis_curves& curves, int buf_size, int rank, int root, MPI_Comm communicator);
+
+int main(int argc, char* argv[])
+{
+	int my_rank, number_of_processes, root = 0;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &number_of_processes);
+	double t1, t2, timed1, timed2;
+	auto format = [](std::ostream& os) -> std::ostream& {
+		return os << scientific << setprecision(7) << setw(12) << setfill(' ');
+	};
+	signed int areArgumentsOk = 1;
+	analysis_curves curves;
+
+	if (my_rank == root)
+	{
+		string input_filename;
+		string output_filename;
+		
+		double u, v;
+		if (argc == 3)
+		{
+			input_filename = string(argv[1]);
+			output_filename = string(argv[2]);
+		}
+		else
+		{
+			cout << "Provide an IGES filename as input followed by a second filename for saving the results.\n";
+			areArgumentsOk = 0;
+		}
+		if (areArgumentsOk)
+		{
+			cout << "Reading IGES file: " << input_filename << endl;
+			if (curves.read_iges_file(input_filename.c_str()))
+			{
+				//TESTING curve points computation
+				curves.RefineCurve(20);
+				cout << "Solution using Simpson's integration with one core:\n";
+				clock_t startTime = clock();
+				curves.ComputeFieldOnSingleCurve(1, complex<double>(0.002652582384865, -0.000530516476973), 0, 1e-4);
+				timed1 = double(clock() - startTime) / (double)CLOCKS_PER_SEC;
+				cout << "_________________________\n";
+				cout << "Solution using Adaptive Gauss-Kronrod integration with one core:\n";
+				startTime = clock();
+				curves.ComputeFieldOnSingleCurve_GSL(1, complex<double>(0.002652582384865, -0.000530516476973), 0);
+				timed2 = double(clock() - startTime) / (double)CLOCKS_PER_SEC;
+				cout << "_________________________\n";
+				/*valarray<double> pv(51);
+				pv[0] = 0; pv[50] = 1;
+				for (unsigned int i = 1; i < pv.size() - 1; i++)
+					pv[i] = pv[i - 1] + 0.02;
+				vector<vector<Point> > points = curves.ComputeCurvePoints(pv, 1);
+				for (unsigned int i = 0; i < points.size(); i++)
+				{
+					for (unsigned int j = 0; j < 2; j++)
+						cout << point2str(points[i][j],true);
+				}*/
+				//TESTING basis function 
+				/*vector<double> pv(51);
+				pv[0] = 0; pv[50] = 1;
+				for (unsigned int i = 1; i < pv.size()-1; i++)
+					pv[i] = pv[i - 1] + 0.02;
+				valarray<valarray<double> > Bases = curves.ComputeBasisValues(pv);
+				for (unsigned int i = 0; i < curves.DoFs()[0]; i++) {
+					for (unsigned int j = 0; j < pv.size(); j++)
+						cout << Bases[j][i] << ",";
+					cout << endl;
+				}*/
+
+				//generate a curve and save it.
+				/*vector<double> params{ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 };
+				curves.CurveFromParameters_pm1(params, 1);
+				curves.RefineCurve(3);*/
+
+				/*//TESTING basis function 
+				vector<double> pv(51);
+				pv[0] = 0; pv[50] = 1;
+				for (unsigned int i = 1; i < 50; i++)
+					pv[i] = pv[i-1]+0.02;
+				valarray<valarray<double> > Bases=curves.ComputeBasisValues(pv);
+				for (unsigned int i = 0; i < 23; i++) {
+					for (unsigned int j = 0; j < 51; j++)
+						cout << Bases[j][i] << ",";
+					cout << endl;
+				}*/
+				/*cout << "\nTesting simple Green Function:\n";
+				Point p(1, 0.2);
+				Point p0(0.2, 0.1);
+				complex<double> res = Green(p0, p, 1);
+				cout << "(" << format << real(res) << "," << format << imag(res) << ")\n";
+				cout << "\nTesting multi-valued Green Function:\n";
+				vector<Point> p1(3);
+				p1[0] = Point(1, 0.2);
+				p1[1] = Point(.5, 0.2);
+				p1[2] = Point(.1, 0.2);
+				valarray<complex<double> > res2 = Green(p0, p1, 1);
+				for (unsigned int i = 0; i < p1.size(); i++)
+					cout << "(" << format << real(res2[i]) << "," << format << imag(res2[i]) << ")\n";
+				curves.save_analysis_model(output_filename.c_str());*/
+			}
+			else
+			{
+				cout << "Fail reading IGES file.\n";
+				areArgumentsOk = -1;
+			}
+		}
+	}
+	MPI_Bcast(&areArgumentsOk, 1, MPI_INT, root, MPI_COMM_WORLD);
+	if (areArgumentsOk != 1)
+	{
+		MPI_Finalize();
+		return -1;
+	}
+	int buf_size = 0;
+	if (my_rank == root)
+		buf_size = curves.memory_size();
+	MPI_Bcast(&buf_size, 1, MPI_INT, root, MPI_COMM_WORLD);
+	
+	broadcastCurveData(curves, buf_size, my_rank, root, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	if (my_rank == root) {
+		cout << "Solution using Simpson's integration with multiple cores:\n";
+		t1 = MPI_Wtime();
+	}
+	curves.ComputeFieldOnSingleCurve_MPI(1, complex<double>(0.002652582384865, -0.000530516476973), 0, 1e-4);
+	if (my_rank == root)
+	{
+		t2 = MPI_Wtime();
+		cout << "_________________________\n";
+		cout << "Elapsed time using 1 core is "<<timed1<<endl;
+		cout << "Elapsed time using 1 core and GSL is " << timed2 << endl;
+		cout << "Elapsed time using "<<number_of_processes<<" core(s) is " << t2 - t1 <<endl;
+	}
+	MPI_Finalize();
+	return EXIT_SUCCESS;
+}
+
+void broadcastCurveData(analysis_curves& curves, int buf_size, int rank, int root, MPI_Comm communicator)
+{
+	double* ctrl_pts = 0;
+	double* knots = 0;
+	char* packbuffer = new char[buf_size];
+	int packposition;
+	int nCurves;
+	int* n_cps = 0;
+	int* order = 0;
+	bool* rational = 0;
+	if (rank == root)
+	{
+		packposition = 0;
+		nCurves = curves.nCurves();
+		n_cps = new int[2 * nCurves];
+		order = new int[2 * nCurves];
+		rational = new bool[2 * nCurves];
+		for (unsigned int i = 0; i < nCurves; i++) {
+			n_cps[i] = curves[i].numCoefs();
+			order[i] = curves[i].order();
+			rational[i] = curves[i].rational();
+			n_cps[i + nCurves] = curves.getAnalysisCurve(i).numCoefs();
+			order[i + nCurves] = curves.getAnalysisCurve(i).order();
+			rational[i + nCurves] = curves.getAnalysisCurve(i).rational();
+		}
+		MPI_Pack(n_cps, 2 * nCurves, MPI_INT, packbuffer, buf_size, &packposition, communicator);
+		MPI_Pack(order, 2 * nCurves, MPI_INT, packbuffer, buf_size, &packposition, communicator);
+		MPI_Pack(rational, 2 * nCurves, MPI_CXX_BOOL, packbuffer, buf_size, &packposition, communicator);
+		for (unsigned int i = 0; i < nCurves; i++) {
+			ctrl_pts = new double[n_cps[i]*4];
+			knots = new double[n_cps[i] + order[i]];
+			unsigned int j = 0;
+			for (vector< double >::const_iterator it = curves[i].rcoefs_begin(); it < curves[i].rcoefs_end(); it++)
+				ctrl_pts[j++] = *it;
+			j = 0;
+			for (vector< double >::const_iterator it = curves[i].knotsBegin(); it < curves[i].knotsEnd(); it++)
+				knots[j++] = *it;
+			MPI_Pack(ctrl_pts, n_cps[i]*4, MPI_DOUBLE, packbuffer, buf_size, &packposition, communicator);
+			MPI_Pack(knots, n_cps[i] + order[i], MPI_DOUBLE, packbuffer, buf_size, &packposition, communicator);
+			delete[] ctrl_pts;
+			delete[] knots;
+			ctrl_pts = new double[n_cps[i+nCurves] * 4];
+			knots = new double[n_cps[i+nCurves] + order[i+nCurves]];
+			j = 0;
+			for (vector< double >::const_iterator it = curves.getAnalysisCurve(i).rcoefs_begin(); it < curves.getAnalysisCurve(i).rcoefs_end(); it++)
+				ctrl_pts[j++] = *it;
+			j = 0;
+			for (vector< double >::const_iterator it = curves.getAnalysisCurve(i).knotsBegin(); it < curves.getAnalysisCurve(i).knotsEnd(); it++)
+				knots[j++] = *it;
+			MPI_Pack(ctrl_pts, n_cps[i+nCurves] * 4, MPI_DOUBLE, packbuffer, buf_size, &packposition, communicator);
+			MPI_Pack(knots, n_cps[i+ nCurves] + order[i+ nCurves], MPI_DOUBLE, packbuffer, buf_size, &packposition, communicator);
+			delete[] ctrl_pts;
+			delete[] knots;
+			ctrl_pts = 0;
+			knots = 0;
+		}
+	}
+	MPI_Bcast(&nCurves, 1, MPI_INT, root, communicator);
+	MPI_Bcast(packbuffer, buf_size, MPI_PACKED, root, communicator);
+	if (rank != root)
+	{
+		packposition = 0;
+		n_cps = new int[2 * nCurves];
+		order = new int[2 * nCurves];
+		rational = new bool[2 * nCurves];
+		MPI_Unpack(packbuffer, buf_size, &packposition, n_cps, 2 * nCurves, MPI_INT, MPI_COMM_WORLD);
+		MPI_Unpack(packbuffer, buf_size, &packposition, order, 2 * nCurves, MPI_INT, MPI_COMM_WORLD);
+		MPI_Unpack(packbuffer, buf_size, &packposition, rational, 2 * nCurves, MPI_CXX_BOOL, MPI_COMM_WORLD);
+		for (unsigned int i = 0; i < nCurves; i++) {
+			ctrl_pts = new double[n_cps[i] * 4];
+			knots = new double[n_cps[i] + order[i]];
+			MPI_Unpack(packbuffer, buf_size, &packposition, ctrl_pts, 4 * n_cps[i], MPI_DOUBLE, MPI_COMM_WORLD);
+			MPI_Unpack(packbuffer, buf_size, &packposition, knots, n_cps[i] + order[i], MPI_DOUBLE, MPI_COMM_WORLD);
+			SplineCurve curve = SplineCurve(n_cps[i], order[i], knots, ctrl_pts, 3, rational[i]);
+			curves.addCurve(curve);
+			delete[] ctrl_pts;
+			delete[] knots;
+			ctrl_pts = new double[n_cps[i+nCurves] * 4];
+			knots = new double[n_cps[i+nCurves] + order[nCurves+i]];
+			MPI_Unpack(packbuffer, buf_size, &packposition, ctrl_pts, 4 * n_cps[i+nCurves], MPI_DOUBLE, MPI_COMM_WORLD);
+			MPI_Unpack(packbuffer, buf_size, &packposition, knots, n_cps[i+nCurves] + order[i+nCurves], MPI_DOUBLE, MPI_COMM_WORLD);
+			curve = SplineCurve(n_cps[i+nCurves], order[i+nCurves], knots, ctrl_pts, 3, rational[i+nCurves]);
+			curves.addAnalysisCurve(curve);
+			delete[] ctrl_pts;
+			delete[] knots;
+		}
+		curves.CalculateGreville();
+		/*for (unsigned int i = 0; i < nCurves; i++) {
+			string str = string( "myrank " + to_string(rank) + ":\n");
+			cout << str + curves.PrintCurveInfo(i) + curves.PrintCurveInfo(i, true);
+		
+		}*/
+	}
+	delete[] packbuffer;
+	delete[] n_cps;
+	delete[] order;
+	delete[] rational;
+}

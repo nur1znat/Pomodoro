@@ -1,0 +1,20 @@
+# - Tries to find the GoTools Core library
+#
+# Written by: jan.b.thomassen@sintef.no
+#
+
+# Find header files
+FIND_PATH(GOTOOLS_INCLUDE_DIR
+          NAMES GoTools
+	  PATHS /home/dev-libs/GoTools/gotools-core/include/)
+
+FIND_LIBRARY(GOTOOLS_LIBRARIES
+             NAMES GoToolsCore
+	     PATHS /home/dev-libs/GoTools/libs)
+
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(GoTools DEFAULT_MSG GOTOOLS_INCLUDE_DIR GOTOOLS_LIBRARIES)
+
+
+mark_as_advanced(GOTOOLS_INCLUDE_DIR GOTOOLS_LIBRARIES)

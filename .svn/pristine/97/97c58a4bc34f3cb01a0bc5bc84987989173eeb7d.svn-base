@@ -1,0 +1,101 @@
+#pragma once
+#ifndef ANALYSIS_NURBSCURVE_H
+#define ANALYSIS_NURBSCURVE_H
+
+#include <sstream>
+#include <iterator>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <set>
+#include <gmsh.h>
+#include "special_functions.h"
+#include "GoTools/geometry/SplineCurve.h"
+
+
+#define GOTOOLS_BASIS_VERSION
+using namespace std;
+using namespace Go;
+
+class analysis_curves
+{
+	public:
+	//!default constructor
+	analysis_curves() { }
+	//!default destructor
+	~analysis_curves() { }
+	//! get number of surfaces in model
+	unsigned int nCurves() const{return m_cad_model.size();}
+	//! get number of DoFs
+	vector<unsigned int> DoFs(bool CAD = false) const;
+	//! get the ith curve from the collection of curves in the CAD model
+	const SplineCurve& operator[](unsigned int i) const;
+	//! get the ith curve from the collection of curves in the analysis model
+	const SplineCurve& getAnalysisCurve(unsigned int i) const;
+	//! add a curve in the CAD model
+	void addCurve(SplineCurve& curve) { m_cad_model.push_back(curve); }
+	//! add analysis curve in the analysis model
+	void addAnalysisCurve(SplineCurve& curve) { m_analysis_model.push_back(curve); }
+	//! add greville Abscissae
+	void addGrevilleAbscissae(double* vals, int size) {m_greville.push_back(valarray<double>(vals, size));}
+	//! get greville Abscissa
+	double GetGrevilleAbscissa(unsigned int i, unsigned int curve_index = 0);
+	//! check if curve at curve_index is closed
+	bool isCurveClosed(double tolerance=1e-6, unsigned int curve_index = 0);
+	//! get area of closed curved (return -1, if curve is not closed)
+	double CurveArea(unsigned int curve_index = 0);
+	//! get length of curve at curve_index
+	double CurveLength(unsigned int curve_index = 0);
+	//! get arc length between start_param and end_param for curve at curve_index
+	double CurveArcLength(double start_param = 0., double end_param = 1., unsigned int curve_index = 0);
+	//! generate a closed curve of arbitrary shape using the 1st parametric model at position curve_index
+	void CurveFromParameters_pm1(vector<double> parameters, double r_max, unsigned int curve_index=0);
+	//! refine the analysis model placing knots_per_span knots uniformly distributed knots for each knot span 
+	//! for the curve at curve_index; if no curve_index is specified, the first curve is refined.
+	void RefineCurve(unsigned int knots_per_span, unsigned int curve_index = 0);
+	//! Analysis model: compute basis value at 'param' parametric value (return rational basis value, if curve is rational)
+	double ComputeBasisValue(double param, unsigned int b_id, unsigned int curve_index = 0);
+	//! Analysis model: compute basis values at 'params' parametric values (return rational basis values, if curve is rational)
+	valarray<valarray<double> > ComputeBasisValues(valarray<double> params, unsigned int curve_index = 0);
+	//! CAD model: compute curve's points and derivatives at 'params' parametric values
+	vector<vector<Point> > ComputeCurvePoints(valarray<double> params, unsigned int derivs = 0, unsigned int curve_index = 0);
+	//! Analysis model: compute solution at 'params' parametric values
+	valarray<complex<double> > ComputeSolutionValues(valarray<double> params, unsigned int curve_index = 0);
+	//! compute electric field on single curve from a given background field
+	void ComputeFieldOnSingleCurve(double wavelength, complex<double> sigma, unsigned int curve_index = 0, double step = 1e-4);
+	//! compute electric field on single curve from a given background field using GSL integration
+	void ComputeFieldOnSingleCurve_GSL(double wavelength, complex<double> sigma, unsigned int curve_index = 0);
+	//! compute electric field on single curve from a given background field with OpenMPI
+	void ComputeFieldOnSingleCurve_MPI(double wavelength, complex<double> sigma, unsigned int curve_index = 0, double step = 1e-4);
+	//! read curve from IGES file
+	bool read_iges_file(const char* filename);
+	//! save analysis curves in IGES file
+	bool save_analysis_model(const char* filename, bool IGES = true);
+	//! return a string with the solution's control values on the curve boundary
+	string PrintSolution(unsigned int curve_index = 0);
+	//! compute memory used for curves storage
+	int memory_size();
+	//! get i greville Abscissa from analysis model j
+	double GetGreville(unsigned int i /*curve*/, unsigned int j /*Greville Abscissa index*/) { return m_greville[i][j];}
+	//! print curve info
+	string PrintCurveInfo(unsigned int i, bool analysis = false);
+	//! calculate Greville Abscissae and Points
+	void CalculateGreville();
+	//! calculate quantity on mesh
+	double CalculateQuantityOnMesh(double wavelength, double angle, complex<double> sigma, unsigned int curve_index=0, double step = 1e-4, string filename="");
+	double CalculateQuantityOnMesh_GSL(double wavelength, double angle, complex<double> sigma, unsigned int curve_index = 0, double tolerance = 1e-6, string filename = "");
+	private:
+	void updateAnalysisModel() { m_analysis_model = m_cad_model; CalculateGreville(); }
+	void shiftGreville(valarray<double> t, unsigned int curve_index);
+	//!initial NURBS CAD model
+	vector<SplineCurve> m_cad_model;
+	//!curve model after refinement used for analysis
+	vector<SplineCurve> m_analysis_model;
+	//!solution vector (electric field on analysis_model)
+	vector<SplineCurve> m_e;
+	//!Greville abscissae
+	vector<valarray<double> > m_greville;
+	//!Greville points
+	vector<vector<Point> > m_grevillePoints;
+};
+#endif

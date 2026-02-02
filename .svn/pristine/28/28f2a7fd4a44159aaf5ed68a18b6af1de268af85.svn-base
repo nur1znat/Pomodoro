@@ -1,0 +1,60 @@
+#include "opt_problems.h"
+#include <pagmo/archipelago.hpp>
+#include <pagmo/algorithm.hpp>
+#include <pagmo/algorithms/compass_search.hpp>
+#include <pagmo/algorithms/nlopt.hpp>
+#include <pagmo/population.hpp>
+#include "tbb/tick_count.h"
+
+using namespace pagmo;
+using namespace std;
+
+int main(int argc, char* argv[])
+{
+	
+	double wavelength = 1;
+	double waveangle = 0;
+	double area0 = 1.5;
+	complex<double> sigma = complex<double>(0.001, 0.001);
+	unsigned int refinement_level = 5;
+	opt_problem_data d = { wavelength, waveangle, sigma, refinement_level };
+
+	opt_max_concentration1 opt_p = opt_max_concentration1(12);
+	opt_p.set_problem_data(d);
+	opt_p.set_area_constraint(area0);
+	
+	
+	problem pp( opt_p );
+	cout << pp;
+	
+	unsigned int generations = 100;
+	unsigned int initial_population_size = 100;
+	unsigned int islands_number = 16;
+
+	//Select optimization algorithm for solving the problem
+	 
+	//compass_search optimizer (similar to pattern search) with 1e5 allowed f calculations, .2 initial step and 1e-4 as the terminating step
+	//compass_search solver(1e5, .2, 1e-4); 
+	
+	//NLopt optimizer COBYLA : Constrained Optimization BY Linear Approximations
+	nlopt solver("cobyla");
+	solver.set_selection("best");
+
+	solver.set_verbosity(1);
+	algorithm opt_alg{ solver };
+	//Create initial population
+	//tbb::tick_count t0 = tbb::tick_count::now();
+	population pop{ pp,initial_population_size };
+	/*cout << pop;
+	printf("Calculation of initial population took %g seconds\n", (t1 - t0).seconds());*/
+	//tbb::tick_count t1 = tbb::tick_count::now();
+	pop = opt_alg.evolve(pop);
+	cout << "Best value:" << pop.champion_f()[0] << " at: " << vector2str(pop.champion_x()) << endl;
+	/*archipelago archi{ islands_number, opt_alg, pp, initial_population_size };
+	archi.evolve(1);
+	archi.wait_check();
+	for (const auto& isl : archi) {
+		cout << isl.get_population().champion_f()[0] << " at: " << vector2str(isl.get_population().champion_x()) << '\n';
+	}*/
+	return EXIT_SUCCESS;
+}

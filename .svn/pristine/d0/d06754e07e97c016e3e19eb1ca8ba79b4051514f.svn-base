@@ -1,0 +1,18 @@
+
+IF(IGES_INCLUDE_DIR AND IGES_LIBRARIES)
+  # Already in cache, be silent
+  set(IGES_FIND_QUIETLY TRUE)
+ENDIF(IGES_INCLUDE_DIR AND IGES_LIBRARIES)
+
+find_path(IGES_INCLUDE_DIR 
+	  NAMES GoTools 
+          PATHS /home/kvkostas/dev/GoTools/igeslib/include)
+
+find_library(IGES_LIBRARIES 
+	     NAMES GoIgeslib 
+             PATHS /home/kvkostas/dev/GoTools/libs)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(IGES DEFAULT_MSG IGES_INCLUDE_DIR IGES_LIBRARIES)
+
+mark_as_advanced(IGES_INCLUDE_DIR IGES_LIBRARIES)

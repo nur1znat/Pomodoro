@@ -1,0 +1,40 @@
+#include <iostream>
+#include <random>
+#include "analysis_NURBSCurve.h"
+
+#include <stdlib.h>
+
+using namespace std;
+using namespace Go;
+
+int main(int argc, char* argv[])
+{
+	string output_curve_filename;
+	string output_mesh_filename;
+	analysis_curves curves;
+	if (argc == 3)
+	{
+		output_curve_filename = string(argv[1]);
+		output_mesh_filename = string(argv[2]);
+		random_device rd;  // Will be used to obtain a seed for the random number engine
+		mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+		uniform_real_distribution<> dis(0.0, 1.0);
+		unsigned int nParams = 8;
+		vector<double> params(2*nParams);
+		for (unsigned int i = 0; i < 2*nParams; i++)
+			params[i] = dis(gen);
+		curves.CurveFromParameters_pm1(params, 1);
+		curves.RefineCurve(5);
+		cout << "Generated random closed curve with " << nParams << " parameters.\n";
+		cout << "Generated curve length: " << curves.CurveLength() << endl;
+		cout << "Generated curve area: " << curves.CurveArea() << endl;
+		curves.CalculateQuantityOnMesh(0,output_mesh_filename);
+		curves.save_analysis_model(output_curve_filename.c_str());
+		return 0;
+	}
+	else
+	{
+		cout << "Provide two filenames for saving the curve and the corresponding mesh\n";
+		return -1;
+	}
+}

@@ -1,0 +1,36 @@
+#include "opt_problems.h"
+#include <pagmo/algorithm.hpp>
+#include <pagmo/algorithms/nsga2.hpp>
+#include <pagmo/population.hpp>
+
+using namespace pagmo;
+using namespace std;
+
+int main(int argc, char* argv[])
+{
+	
+	double wavelength = 1;
+	double waveangle = 0;
+	double area0 = M_PI;
+	complex<double> sigma = complex<double>(0.01, 0.01);
+	unsigned int refinement_level = 5;
+	opt_problem_data d = { wavelength, waveangle, sigma, refinement_level };
+
+	opt_max_concentration1 opt_p = opt_max_concentration1(10);
+	opt_p.set_problem_data(d);
+	opt_p.set_area_constraint(area0);
+	
+	
+	problem pp( opt_p );
+	cout << pp;
+	
+	unsigned int generations = 100;
+	unsigned int initial_population_size = 100;
+	//Select optimization algorithm for solving the problem
+	algorithm opt_alg{ nsga2(generations) };
+	//Create initial population
+	population pop{ pp,initial_population_size };
+	//pop = opt_alg.evolve(pop);
+	cout << pop;
+	return EXIT_SUCCESS;
+}

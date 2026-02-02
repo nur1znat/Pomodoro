@@ -1,0 +1,53 @@
+#include "special_functions.h"
+
+complex<double> E_plane_back(Point p, double l, double a)
+{
+	Point k0 = 2 * M_PI / l * Point(cos(a), sin(a), 0);
+	return exp(complex<double>(0,- k0 * p));
+}
+
+complex<double> Green(Point p0, Point p, double wavelength)
+{
+	double k0 = 2 * M_PI * wavelength;
+	double order = 0;
+	double arg = k0 * sqrt(pow(p[0] - p0[0], 2) + pow(p[1] - p0[1], 2));
+	double J0 = cyl_bessel_j(order, arg);  //zeroth order Bessel function of the first kind
+	double Y0 =  -cyl_neumann(order, arg); //zeroth order Bessel function of the second kind
+	complex<double> H0 = complex<double>(J0, Y0); //zeroth order Hankel function of the second kind
+	return complex<double>(0, -0.25) * H0;
+}
+
+valarray<complex<double> > Green(Point p0, vector<Point> p, double wavelength)
+{
+	valarray<complex<double> > vals(p.size());
+	for (unsigned int i = 0; i < p.size(); i++)
+		vals[i] = Green(p0, p[i], wavelength);
+	return vals;
+}
+
+valarray<complex<double> > toComplexArray(valarray<double> a)
+{
+	valarray<complex<double> > b(a.size());
+	for (unsigned int i = 0; i < a.size(); i++)
+		b[i] = complex<double>(a[i], 0);
+	return b;
+}
+
+valarray<valarray<double> > transposeArray(valarray<valarray<double> >a)
+{
+	valarray<valarray<double> >b(a[0].size());
+	for (unsigned int i = 0; i < b.size(); i++)
+		b[i].resize(a.size());
+	for (unsigned int i = 0; i < a.size(); i++)
+		for (unsigned int j = 0; j < a[0].size(); j++)
+			b[j][i] = a[i][j];
+	return b;
+}
+
+valarray<complex<double> > NormOfPointsInVector(vector<Point> a)
+{
+	valarray<complex<double> > b(a.size());
+	for (unsigned int i = 0; i < a.size(); i++)
+		b[i] = complex<double>(a[i].length(), 0);
+	return b;
+}

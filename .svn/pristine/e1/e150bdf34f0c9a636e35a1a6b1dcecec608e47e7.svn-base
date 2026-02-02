@@ -1,0 +1,67 @@
+#include "opt_problems.h"
+#include "analysis_NURBSCurve.h"
+#include <tbb/parallel_for.h>
+
+pair<vector_double, vector_double> opt_problem::get_bounds() const
+{
+	vector<double> lb = m_lb.size() ? m_lb : vector<double>(m_problem_size, 0);
+	vector<double> ub = m_ub.size() ? m_ub : vector<double>(m_problem_size, 1);
+	return { lb,ub };
+}
+
+void opt_problem::set_bounds(vector<double> lb, vector<double> ub)
+{
+	if (lb.size() == m_problem_size)
+		m_lb = lb;
+	if (ub.size() == m_problem_size)
+		m_ub = ub;
+}
+
+opt_max_concentration1::opt_max_concentration1(const opt_max_concentration1& o)
+{
+	m_problem_size = o.m_problem_size;
+	m_lb = o.m_lb;
+	m_ub = o.m_ub;
+	m_area = o.m_area;
+	m_data = o.m_data;
+}
+
+vector_double opt_max_concentration1::fitness(const vector_double& v) const
+{
+	analysis_curves curves;
+	curves.CurveFromParameters_pm1(v, 3);
+	curves.RefineCurve(m_data.refinement_level);
+	curves.ComputeFieldOnSingleCurve_TBB(m_data.wavelength, m_data.waveangle, m_data.sigma);
+	vector_double return_value = { 0,0 };
+	try {
+		return_value = { curves.CalculateQuantityOnMesh_GSL(m_data.wavelength, m_data.waveangle, m_data.sigma) * -1,
+						 fabs(curves.CurveArea() - m_area) - 1e-4 };
+	}
+	catch (...) {
+		//some error might have occured in either parallel_for or GSL integration
+		return { 0,0 };
+	}
+	return { return_value };
+}
+
+vector_double opt_max_concentration1::batch_fitness(const vector_double& v) const
+{
+	unsigned int n = v.size() / m_problem_size;
+	vector<double> return_values(n, 0);
+	tbb::parallel_for(tbb::blocked_range<int>(0, n),
+		[&](tbb::blocked_range<int> r)
+		{
+			for (int i = r.begin(); i < r.end(); ++i)
+			{
+				analysis_curves curves;
+				vector<double>::const_iterator first = v.begin() + i * m_problem_size;
+				vector<double>::const_iterator last = v.begin() + (i + 1) * m_problem_size;
+				vector<double> vi(first, last);
+				curves.CurveFromParameters_pm1(vi, 3);
+				curves.RefineCurve(m_data.refinement_level);
+				curves.ComputeFieldOnSingleCurve_TBB(m_data.wavelength, m_data.waveangle, m_data.sigma);
+				return_values[i] = curves.CalculateQuantityOnMesh_GSL(m_data.wavelength, m_data.waveangle, m_data.sigma) * -1;
+			}
+		});
+	return return_values;
+}

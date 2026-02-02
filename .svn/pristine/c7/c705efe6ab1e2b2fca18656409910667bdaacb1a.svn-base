@@ -1,0 +1,591 @@
+#include <mpi.h>
+#include<numeric>
+
+#include "analysis_NURBSCurve.h"
+#include "integration.h"
+#include "GoTools/igeslib/IGESconverter.h"
+
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+
+
+
+vector<unsigned int> analysis_curves::DoFs(bool CAD = false) const
+{
+	vector<unsigned int> DoFs;
+	if (CAD)
+	{
+		for (unsigned int i = 0; i < m_cad_model.size(); i++)
+			DoFs.push_back(m_cad_model[i].numCoefs());
+	}
+	else
+	{
+		for (unsigned int i = 0; i < m_analysis_model.size(); i++)
+			DoFs.push_back(m_analysis_model[i].numCoefs());
+	}
+	return DoFs;
+}
+
+void analysis_curves::RefineCurve(unsigned int in, unsigned int j)
+{
+	if (j < m_analysis_model.size())
+	{
+		vector<double> values;
+		copy(m_analysis_model[j].knotsBegin(), m_analysis_model[j].knotsEnd(), back_inserter(values));
+		auto last = unique(values.begin(), values.end());
+		values.erase(last, values.end());
+		unsigned int m = values.size() - 1;
+		vector<double> toInsert(m * in);
+		for (unsigned int i = 0; i < m; i++)
+			for (unsigned int ii = 0; ii < in; ii++) 
+				toInsert[i * in + ii] = values[i] + (ii + 1) * (values[i + 1] - values[i]) / (in + 1);
+		m_analysis_model[j].insertKnot(toInsert);
+		CalculateGreville();
+	}
+}
+
+double analysis_curves::GetGrevilleAbscissa(unsigned int i, unsigned int curve_index = 0)
+{
+	double val = NAN;
+	if (curve_index < m_analysis_model.size())
+		if (i < m_greville[curve_index].size())
+			val = m_greville[curve_index][i];
+	return val;
+}
+
+string analysis_curves::PrintCurveInfo(unsigned int i, bool analysis = false)
+{
+	stringstream buffer;
+	if (analysis)
+	{
+		if (i < m_analysis_model.size())
+		{
+			buffer << "____Analysis Curve:" << i << "_______\n";
+			buffer << "Rational:" << m_analysis_model[i].rational() << endl;
+			buffer << "Degree:" << m_analysis_model[i].order() << endl;
+			buffer << "Number of Control Points:" << m_analysis_model[i].numCoefs() << endl;
+			buffer << "First knot:" << m_analysis_model[i].startparam() << " Last knot:" << m_analysis_model[i].endparam() << endl;
+			std::vector< double >::const_iterator it = m_cad_model[i].coefs_begin();
+			buffer << "First control point: (" << *it << "," << *(it + 1) << "," << *(it + 2) << ")\n";
+			it = m_analysis_model[i].coefs_end();
+			buffer << "Last control point: (" << *(it - 3) << "," << *(it - 2) << "," << *(it - 1) << ")\n";
+			buffer << "First/last Greville Abscissae: " << m_greville[i][0] << "," << m_greville[i][m_analysis_model[i].numCoefs() - 1] << endl;
+			buffer << "____________________________________\n";
+		}
+	}
+	else
+	{
+		if (i < m_cad_model.size())
+		{
+			buffer << "____CAD Curve:" << i << "_______\n";
+			buffer << "Rational:" << m_cad_model[i].rational() << endl;
+			buffer << "Degree:" << m_cad_model[i].order()<<endl;
+			buffer << "Number of Control Points:" << m_cad_model[i].numCoefs() << endl;
+			buffer << "First knot:" << m_cad_model[i].startparam() << " Last knot:" << m_cad_model[i].endparam()<<endl;
+			std::vector< double >::const_iterator it = m_cad_model[i].coefs_begin();
+			buffer << "First control point: (" << *it << "," << *(it+1) << "," << *(it+2) << ")\n";
+			it = m_cad_model[i].coefs_end();
+			buffer << "Last control point: (" << *(it-3) << "," << *(it-2) << "," << *(it-1) << ")\n";
+			buffer << "____________________________________\n";
+		}
+	}
+	return buffer.str();
+}
+
+void analysis_curves::CurveFromParameters_pm1(vector<double> p, double max_r, unsigned int j)
+{
+	if (!(p.size()%2))
+	if (all_of(p.cbegin(),p.cend(), [](double i){return i<=1;}) && all_of(p.cbegin(), p.cend(), [](double i){ return i >= 0; }) && max_r>0)
+	{
+		unsigned int k = 4; //order of spline, i.e., assume only cubics here
+		unsigned int n = p.size() / 2;
+		vector<double> ctrl_pts(3*n);
+		for (unsigned int i = 0; i < n; i++)
+		{
+			p[i] = max_r * (0.99 * p[i] + 0.01);
+			p[i + n] = (p[i + n] + i) * 2 * M_PI / n;
+			ctrl_pts[i * 3] = p[i] * cos(p[i + n]);
+			ctrl_pts[i * 3 + 1] = p[i] * sin(p[i + n]);
+			ctrl_pts[i * 3 + 2] = 0;
+		}
+		ctrl_pts.insert(ctrl_pts.begin(), ctrl_pts.end() - 3, ctrl_pts.end());
+		for (unsigned int i = 3; i < 9; i++)
+			ctrl_pts.push_back(ctrl_pts[i]);
+		n = ctrl_pts.size() / 3;
+		vector<double> knots(n+k);
+		iota(knots.begin(), knots.end(), 0);
+		SplineCurve curve(n, k, knots.begin(), ctrl_pts.begin(), 3);
+		curve.makeKnotStartRegular();
+		curve.makeKnotEndRegular();
+		curve.setParameterInterval(0, 1);
+		if (j < m_analysis_model.size())
+		{
+			m_cad_model[j] = curve;
+			m_analysis_model[j] = curve;
+			CalculateGreville();
+		}
+		else
+		{
+			m_cad_model.push_back(curve);
+			m_analysis_model.push_back(curve);
+			CalculateGreville();
+		}
+	}
+}
+
+bool analysis_curves::read_iges_file(const char* filename)
+{
+    ifstream infile ( filename, fstream::in );
+    if ( infile.fail() )
+    {
+        cout << "Input IGES file not found or file corrupt" << endl;
+        return false;
+    }
+    IGESconverter conv1;
+    try
+    {
+        conv1.readIGES ( infile );
+    }
+    catch ( ... )
+    {
+        cout << "Failed reading input IGES file, exiting." << endl;
+        return false;
+    }
+    //number of entities in IGES file
+    unsigned int n = conv1.num_geom();
+    m_cad_model.clear();
+    m_analysis_model.clear();
+    vector<std::shared_ptr<Go::GeomObject> > geometries;
+    //store geometric entities found in IGES file
+    geometries = conv1.getGoGeom();
+    Go::ClassType type;
+    for ( unsigned int i=0; i<n; i++ )
+    {
+        type = geometries[i]->instanceType();
+        if ( type == Go::Class_SplineCurve )
+        {
+            m_cad_model.push_back ( *(dynamic_pointer_cast<Go::SplineCurve, Go::GeomObject>(geometries[i]))  );
+			m_cad_model[i].setParameterInterval(0,1);
+        }
+    }
+	updateAnalysisModel();
+	return true;
+}
+
+void analysis_curves::ComputeFieldOnSingleCurve_MPI(double wavelength, complex<double> sigma, unsigned int curve_index, double step)
+{
+	int my_rank, number_of_processes, calculator_process, root = 0;
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &number_of_processes);
+	MPI_Status* status;
+	complex<double>* cvals;
+	if (curve_index < m_analysis_model.size())
+	{
+		double k0 = 2 * M_PI * wavelength;
+		double h0 = 120 * M_PI;
+		unsigned int n = 1 / step;
+		valarray<double> t(n + 1);
+		iota(begin(t), end(t), 0);
+		t = t / n;
+		shiftGreville(t, curve_index);
+		unsigned int DoFs = m_grevillePoints[curve_index].size();
+		valarray<valarray<double> > Bases = transposeArray(ComputeBasisValues(t, curve_index));
+		valarray<valarray<double> > GBases = ComputeBasisValues(m_greville[curve_index], curve_index);
+		vector<vector<Point> > points = ComputeCurvePoints(t, 1, curve_index);
+		valarray<valarray<complex<double> > > vals(DoFs);
+		valarray <complex<double> >LHS(DoFs);
+		valarray<complex<double> > coefs(n + 1);
+		coefs[slice(1, n / 2, 2)] = complex<double>(4, 0);
+		coefs[slice(2, n / 2, 2)] = complex<double>(2, 0);
+		coefs[0] = complex<double>(1, 0);
+		coefs[n] = coefs[0];
+		valarray<complex<double> > norms = NormOfPointsInVector(points[1]);
+		valarray<complex<double> > gVals(n + 1);
+		gsl_vector_complex* rhs;
+		gsl_matrix_complex* lhs;
+		if (my_rank == root)
+		{
+			rhs = gsl_vector_complex_alloc(DoFs);
+			lhs = gsl_matrix_complex_alloc(DoFs, DoFs);
+			cvals = new complex<double>[DoFs];
+		}
+		for (unsigned int j = 0; j < DoFs; j++)
+		{
+			calculator_process = j % number_of_processes;
+			if (my_rank == calculator_process && my_rank != root)
+			{
+				gVals = Green(m_grevillePoints[curve_index][j], points[0], wavelength);
+				for (unsigned int i = 0; i < DoFs; i++)
+				{
+					vals[i] = gVals * toComplexArray(Bases[i]) * norms;
+					LHS[i] = i_unit * k0 * h0 * sigma * complex<double>(step / 3, 0) * (coefs * vals[i]).sum();
+				}
+				LHS += toComplexArray(GBases[j]);
+				MPI_Send(begin(LHS), DoFs, MPI_DOUBLE_COMPLEX, root, 1, MPI_COMM_WORLD);
+			}
+			else if (my_rank == calculator_process && my_rank == root)
+			{
+				gVals = Green(m_grevillePoints[curve_index][j], points[0], wavelength);
+				for (unsigned int i = 0; i < DoFs; i++)
+				{
+					vals[i] = gVals * toComplexArray(Bases[i]) * norms;
+					LHS[i] = i_unit * k0 * h0 * sigma * complex<double>(step / 3, 0) * (coefs * vals[i]).sum();
+				}
+				LHS += toComplexArray(GBases[j]);
+				for (unsigned int i = 0; i < DoFs; i++) {
+					gsl_matrix_complex_set(lhs, j, i, toGSLcomplex(LHS[i]));
+				}
+				gsl_vector_complex_set(rhs, j, toGSLcomplex(E_plane_back(m_grevillePoints[curve_index][j], wavelength, 0)));
+			}
+			else if (my_rank != calculator_process && my_rank == root)
+			{			
+				MPI_Recv(cvals, DoFs, MPI_DOUBLE_COMPLEX, calculator_process, 1, MPI_COMM_WORLD, status);
+				for (unsigned int i = 0; i < DoFs; i++) {
+					gsl_matrix_complex_set(lhs, j, i, toGSLcomplex(cvals[i]));
+				}
+				gsl_vector_complex_set(rhs, j, toGSLcomplex(E_plane_back(m_grevillePoints[curve_index][j], wavelength, 0)));
+			}	
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		if (my_rank == root)
+		{
+			int s;
+			gsl_permutation* p = gsl_permutation_alloc(DoFs);
+			gsl_vector_complex* x = gsl_vector_complex_alloc(DoFs);
+			gsl_linalg_complex_LU_decomp(lhs, p, &s); //perform LU decomposition
+			gsl_linalg_complex_LU_solve(lhs, p, rhs, x); //solve linear system
+			for (unsigned int i = 0; i < DoFs; i++) {
+				cout
+					<< "(" << GSL_REAL(gsl_vector_complex_get(x, i))
+					<< " "
+					<< GSL_IMAG(gsl_vector_complex_get(x, i)) << ")"
+					<< endl;
+			}
+			gsl_permutation_free(p);
+			gsl_matrix_complex_free(lhs);
+			gsl_vector_complex_free(x);
+			gsl_vector_complex_free(rhs);
+			delete[] cvals;
+		}
+	}
+}
+
+
+void analysis_curves::ComputeFieldOnSingleCurve(double wavelength, complex<double> sigma, unsigned int curve_index, double step)
+{
+	if (curve_index < m_analysis_model.size())
+	{
+		double k0 = 2 * M_PI * wavelength;
+		double h0 = 120 * M_PI;
+		unsigned int n = 1 / step;
+		valarray<double> t(n + 1);
+		iota(begin(t), end(t), 0);
+		t = t / n;
+		shiftGreville(t, curve_index);
+		unsigned int DoFs = m_grevillePoints[curve_index].size();
+		valarray<valarray<double> > Bases = transposeArray(ComputeBasisValues(t, curve_index));
+		valarray<valarray<double> > GBases = ComputeBasisValues(m_greville[curve_index], curve_index);
+		vector<vector<Point> > points = ComputeCurvePoints(t, 1, curve_index);
+		valarray<valarray<complex<double> > > vals(DoFs);
+		valarray <complex<double> >LHS(DoFs);
+		valarray<complex<double> > coefs(n + 1);
+		coefs[slice(1, n / 2, 2)] = complex<double>(4, 0);
+		coefs[slice(2, n / 2, 2)] = complex<double>(2, 0);
+		coefs[0] = complex<double>(1, 0);
+		coefs[n] = coefs[0];
+		valarray<complex<double> > norms = NormOfPointsInVector(points[1]);
+		valarray<complex<double> > gVals(n + 1);
+		gsl_vector_complex* rhs = gsl_vector_complex_alloc(DoFs);
+		gsl_matrix_complex* lhs = gsl_matrix_complex_alloc(DoFs, DoFs);
+		for (unsigned int j = 0; j < DoFs; j++) 
+		{
+			gVals = Green(m_grevillePoints[curve_index][j], points[0], wavelength);
+			for (unsigned int i = 0; i < DoFs; i++)
+			{
+				vals[i] = gVals * toComplexArray(Bases[i]) * norms;
+				LHS[i] = i_unit * k0 * h0 * sigma * complex<double>(step / 3, 0) * (coefs * vals[i]).sum();
+			}
+			LHS += toComplexArray(GBases[j]);
+			for (unsigned int i = 0; i < DoFs; i++) {
+				gsl_matrix_complex_set(lhs, j, i, toGSLcomplex(LHS[i]));
+			}
+			gsl_vector_complex_set(rhs, j, toGSLcomplex(E_plane_back(m_grevillePoints[curve_index][j], wavelength, 0)));
+		}
+		int s;
+		gsl_permutation* p = gsl_permutation_alloc(DoFs);
+		gsl_vector_complex* x = gsl_vector_complex_alloc(DoFs);
+		gsl_linalg_complex_LU_decomp(lhs, p, &s); //perform LU decomposition
+		gsl_linalg_complex_LU_solve(lhs, p, rhs, x); //solve linear system
+		for (unsigned int i = 0; i < DoFs; i++) {
+			cout
+				<< "("<<GSL_REAL(gsl_vector_complex_get(x, i))
+				<< " "
+				<< GSL_IMAG(gsl_vector_complex_get(x, i))<<")"
+				<< endl;
+		}
+		gsl_permutation_free(p);
+		gsl_matrix_complex_free(lhs);
+		gsl_vector_complex_free(x);
+		gsl_vector_complex_free(rhs);
+	}
+}
+
+void analysis_curves::ComputeFieldOnSingleCurve_GSL(double wavelength, complex<double> sigma, unsigned int curve_index)
+{
+	if (curve_index < m_analysis_model.size())
+	{
+		double quad1r, quad1i, quad2r, quad2i, abserr;
+		double epsabs = 1e-10, epsrel = 1e-10;
+		size_t limit = 1000;
+		IntegrationWorkspace wsp(limit);
+		double k0 = 2 * M_PI * wavelength;
+		double h0 = 120 * M_PI;
+		unsigned int i,j, DoFs = m_analysis_model[curve_index].numCoefs();
+		Point gp;
+		vector<Point> p(2);
+		complex<double> G;
+		double R,g;
+		bool isReal;
+		gsl_vector_complex* rhs = gsl_vector_complex_alloc(DoFs);
+		gsl_matrix_complex* lhs = gsl_matrix_complex_alloc(DoFs, DoFs);
+		auto integrand = make_gsl_function([&](double t)
+			{
+				m_cad_model[curve_index].point(p, t, 1);
+				G = Green(gp, p[0], wavelength);
+				R = ComputeBasisValue(t, j, curve_index);
+				double res = ((isReal)?G.real():G.imag()) * R * p[1].length();
+				return res;
+			});
+		complex<double> tmp;
+		for (i = 0; i < DoFs; i++)
+		{
+			g = m_greville[curve_index][i];
+			gp = m_grevillePoints[curve_index][i];
+			for (j = 0; j < DoFs; j++)
+			{
+				quad1r = 0.; quad1i = 0;
+				quad2r = 0.; quad2i = 0;
+				if (fabs(g) > epsabs) {
+					isReal = true;
+					gsl_integration_qag(integrand, 0, g, epsabs, epsrel, limit, GSL_INTEG_GAUSS15, wsp, &quad1r, &abserr);
+					isReal = false;
+					gsl_integration_qag(integrand, 0, g, epsabs, epsrel, limit, GSL_INTEG_GAUSS15, wsp, &quad1i, &abserr);
+				}
+				if (fabs(1 - g) > epsabs) {
+					isReal = true;
+					gsl_integration_qag(integrand, g, 1, epsabs, epsrel, limit, GSL_INTEG_GAUSS15, wsp, &quad2r, &abserr);
+					isReal = false;
+					gsl_integration_qag(integrand, g, 1, epsabs, epsrel, limit, GSL_INTEG_GAUSS15, wsp, &quad2i, &abserr);
+				}
+				tmp = i_unit * k0 * h0 * sigma * complex<double>(quad1r + quad2r, quad1i + quad2i) + ComputeBasisValue(g,j,curve_index);
+				gsl_matrix_complex_set(lhs, i, j, toGSLcomplex(tmp));
+			}
+			gsl_vector_complex_set(rhs, i, toGSLcomplex(E_plane_back(gp, wavelength, 0)));
+		}
+		int s;
+		gsl_permutation* per = gsl_permutation_alloc(DoFs);
+		gsl_vector_complex* x = gsl_vector_complex_alloc(DoFs);
+		gsl_linalg_complex_LU_decomp(lhs, per, &s); //perform LU decomposition
+		gsl_linalg_complex_LU_solve(lhs, per, rhs, x); //solve linear system
+		for (unsigned int i = 0; i < DoFs; i++) {
+			cout
+				<< "(" << GSL_REAL(gsl_vector_complex_get(x, i))
+				<< " "
+				<< GSL_IMAG(gsl_vector_complex_get(x, i)) << ")"
+				<< endl;
+		}
+		gsl_permutation_free(per);
+		gsl_matrix_complex_free(lhs);
+		gsl_vector_complex_free(x);
+		gsl_vector_complex_free(rhs);
+	}
+}
+vector<vector<Point> > analysis_curves::ComputeCurvePoints(valarray<double> params, unsigned int derivs, unsigned int curve_index)
+{
+	//vector<vector<Point> > points(params.size());
+	vector<vector<Point> > points(derivs+1);
+	if (curve_index < m_cad_model.size())
+	{
+		vector<Point> p(derivs + 1);
+		for (unsigned int i = 0; i < derivs + 1; i++)
+			points[i].resize(params.size());
+		for (unsigned int i = 0; i < params.size(); i++)
+		{
+			m_cad_model[curve_index].point(p, params[i], derivs);
+			for (unsigned int j = 0; j < derivs + 1; j++)
+				points[j][i] = p[j];
+		}
+	}
+	return points;
+}
+
+double analysis_curves::ComputeBasisValue(double t, unsigned int b_id, unsigned int curve_index = 0)
+{
+	double val = 0.;
+	if (curve_index < m_analysis_model.size() && b_id>=0)
+	{
+		const BsplineBasis b = m_analysis_model[curve_index].basis();
+		if (b_id < b.numCoefs())
+		{
+			int ki = b.knotInterval(t);
+			bool isRational = m_analysis_model[curve_index].rational();
+			double sum = isRational ? 0. : 1.;
+			vector<double> bvals(b.numCoefs(), 0.);
+			vector<double> b_vals = b.computeBasisValues(t);
+			int j = 0;
+			for (unsigned int i = ki - b.order() + 1; i <= ki; i++)
+				bvals[i] = b_vals[j++];
+			if (isRational)
+			{
+				vector<double>::const_iterator it = m_analysis_model[curve_index].rcoefs_begin();
+				for (unsigned int i = ki - b.order() + 1; i <= ki; i++)
+					sum += it[i * 4 + 3] * bvals[i];
+				sum /= it[b_id * 4 + 3];
+			}
+			val = bvals[b_id] / sum;
+		}
+	}
+	return val;
+}
+
+valarray<valarray<double> > analysis_curves::ComputeBasisValues(valarray<double> params, unsigned int curve_index)
+{
+	valarray<valarray<double> > values;
+	if (curve_index < m_analysis_model.size())
+	{
+		int DoFs = m_analysis_model[curve_index].numCoefs();
+		unsigned int n = params.size();
+		values.resize(n);
+		
+		int* intervals = new int[n];
+		BsplineBasis b = m_analysis_model[curve_index].basis();
+		unsigned int d = b.order() - 1; //degree of basis functions
+		double* tmpvals = new double[n * b.order()];
+		b.computeBasisValues(&params[0], &params[0]+n, tmpvals, intervals);
+		unsigned int j;
+		for (unsigned int i = 0; i < n; i++) {
+			values[i].resize(DoFs,0);
+			for (j = 0; j < d+1; j++) 
+				values[i][j+intervals[i]-d] = tmpvals[i * (d+1) + j];
+		}
+		delete[] tmpvals;
+		delete[] intervals;
+		if (m_analysis_model[curve_index].rational()) //calculate rational basis functions, if curve is rational
+		{
+			valarray<double> weights(DoFs);
+			vector<double>::const_iterator it = m_analysis_model[curve_index].rcoefs_begin();
+			for (j = 0; j < DoFs; j++)
+				weights[j] = it[(j * 4 + 3)];
+			for (j = 0; j < n; j++)
+				values[j] = (values[j] * weights) / (values[j]*weights).sum();
+		}
+	}
+	return values;
+}
+
+bool analysis_curves::save_analysis_model(const char* filename, bool IGES)
+{
+	if (m_analysis_model.size())
+	{
+		if (IGES)
+		{
+			ofstream outfile(filename, fstream::out);
+			if (outfile.fail())
+				return false;
+			IGESconverter igesConverter;
+			vector<shared_ptr<SplineCurve> > ptrs;
+			for (unsigned int i = 0; i < m_analysis_model.size(); i++) {
+				ptrs.push_back(make_shared<SplineCurve>(m_analysis_model[i]));
+				igesConverter.addGeom(dynamic_pointer_cast<Go::SplineCurve, Go::GeomObject>(ptrs[i]));
+			}
+			try
+			{
+				igesConverter.writeIGES(outfile);
+			}
+			catch (...)
+			{
+				return false;
+			}
+			return true;
+		}
+		else
+		{
+			//do something else, e.g., save curve points
+
+		}
+	}
+	return false;
+}
+
+const SplineCurve& analysis_curves::operator[](unsigned int i) const
+{
+	if (i<m_cad_model.size())
+		return m_cad_model[i];
+}
+
+const SplineCurve& analysis_curves::getAnalysisCurve(unsigned int i) const
+{
+	if (i < m_analysis_model.size())
+		return m_analysis_model[i];
+}
+
+void analysis_curves::shiftGreville(valarray<double> t, unsigned int curve_index)
+{
+	if (curve_index < m_analysis_model.size())
+	{
+		double m = (m_greville[curve_index][0] + m_greville[curve_index][m_greville[curve_index].size() - 1]) / 2;
+		for (unsigned int i = 0; i < m_greville[curve_index].size(); i++)
+		{
+			for (unsigned int j = 0; j < t.size(); j++)
+			{
+				if (fabs(m_greville[curve_index][i] - t[j]) < 1e-7)
+				{
+					if (t[j] <= m)
+						m_greville[curve_index][i] += 1e-6;
+					else
+						m_greville[curve_index][i] -= 1e-6;
+					m_cad_model[curve_index].point(m_grevillePoints[curve_index][i], m_greville[curve_index][i]);
+					break;
+				}
+			}
+		}
+	}
+}
+
+void analysis_curves::CalculateGreville()
+{
+	if (m_analysis_model.size())
+	{
+		unsigned int n = m_analysis_model.size();
+		m_greville.resize(n);
+		m_grevillePoints.resize(n);
+		for (unsigned int i = 0; i < n; i++)
+		{
+			BsplineBasis b = m_analysis_model[i].basis();
+			int degree = b.order() - 1;
+			valarray<double> vals(b.numCoefs()+degree-1);
+			m_greville[i].resize(b.numCoefs());
+			m_grevillePoints[i].resize(b.numCoefs());
+			unsigned int j = 0;
+			for (vector<double>::const_iterator it = b.begin() + 1; it < b.end() - 1; it++)
+				vals[j++] = *it;
+			for (j = 0; j < vals.size() - degree +1; j ++) {
+				m_greville[i][j] = valarray(vals[slice(j, degree, 1)]).sum() / degree;
+				m_cad_model[i].point(m_grevillePoints[i][j], m_greville[i][j]);
+			}
+			
+		}
+	}
+}
+
+int analysis_curves::memory_size()
+{
+	//assume homogeneous coordinates for all control points
+	int buf_size = m_cad_model.size() * (4 * sizeof(int) + 2*sizeof(bool)); // number of CPs, order, and rational flag for CAD and analysis models
+	for (unsigned int i = 0; i < m_cad_model.size(); i++)
+		buf_size += m_cad_model[i].numCoefs() * 4 * sizeof(double) + (m_cad_model[i].numCoefs() + m_cad_model[i].order()) * sizeof(double);
+	for (unsigned int i = 0; i < m_analysis_model.size(); i++)
+		buf_size += m_analysis_model[i].numCoefs() * 4 * sizeof(double) + (m_analysis_model[i].numCoefs() + m_analysis_model[i].order()) * sizeof(double);
+	return buf_size;
+}

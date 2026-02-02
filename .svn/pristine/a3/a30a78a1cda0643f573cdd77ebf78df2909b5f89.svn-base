@@ -1,0 +1,97 @@
+#include <iostream>
+#include <random>
+#include "analysis_NURBSCurve.h"
+
+#include <stdlib.h>
+#include "tbb/tick_count.h"
+
+using namespace std;
+using namespace Go;
+
+int main(int argc, char* argv[])
+{
+	string output_curve_filename;
+	string output_mesh_filename;
+	analysis_curves curves;
+	if (argc == 3)
+	{
+		output_curve_filename = string(argv[1]);
+		output_mesh_filename = string(argv[2]);
+		//random_device rd;  // Will be used to obtain a seed for the random number engine
+		//mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+		//uniform_real_distribution<> dis(0.0, 1.0);
+		//unsigned int nParams = 8;
+		//vector<double> params(2*nParams);
+		//for (unsigned int i = 0; i < 2*nParams; i++)
+		//	params[i] = dis(gen);
+		//curves.CurveFromParameters_pm1(params, 1);
+		//vector<double> params{ 0.1, 0.5, 0.5, 0.1, 0.5, 0.5, 0.5, 0.1, 0.5, 0.5 };
+		//curves.CurveFromParameters_pm1(params, 1);
+		curves.read_iges_file(output_curve_filename.c_str());
+		//int n = 100000;
+		//valarray<double> t(n + 1);
+		//iota(begin(t), end(t), 0);
+		//t = t / n;
+		curves.RefineCurve(5);
+		//vector<unsigned int> dofs = curves.DoFs();
+		////valarray<double> t(dofs[0]);
+		////for (unsigned int i = 0; i < dofs[0]; i++)
+		//	//t[i] = curves.GetGrevilleAbscissa(i);
+		//valarray<valarray<double> > B1 = curves.ComputeBasisValues(t);
+		//valarray<valarray<double> > B2(dofs[0]);
+		//for (unsigned int i = 0; i <dofs[0]; i++)
+		//{
+		//	B2[i].resize(dofs[0]);
+		//	for (unsigned int j = 0; j < dofs[0]; j++)
+		//	{
+		//		B2[i][j] = curves.ComputeBasisValue(t[i], j);
+		//		if (fabs(B1[i][j] - B2[i][j]) > 1e-9)
+		//			cout << "Error: " << t[i] <<"," <<j<<":"<< B1[i][j] << "," << B2[i][j] << endl;
+		//	}
+		//}
+	
+		cout << "------------------------------------\n"<<flush;
+		tbb::tick_count t0 = tbb::tick_count::now();
+		curves.ComputeFieldOnSingleCurve(1, 0, complex<double>(0.001, 0.001), 0);
+		tbb::tick_count t1 = tbb::tick_count::now();
+		printf("Calculation of electric field with Simpson's integration (without TBB support) took %g seconds\n", (t1 - t0).seconds());
+		t0 = tbb::tick_count::now();
+		curves.ComputeFieldOnSingleCurve_TBB(1, 0, complex<double>(0.001, 0.001), 0);
+		t1 = tbb::tick_count::now();
+		printf("Calculation of electric field with Simpson's integration (with TBB support) took %g seconds\n", (t1 - t0).seconds());
+		cout << "Calculation of electric field on nanotube completed.\n";
+		cout << "------------------------------------\n" << flush;
+
+		//cout << curves.PrintSolution();
+		/*cout << "------------------------------------\n";
+		curves.ComputeFieldOnSingleCurve_GSL(1, complex<double>(0.002652582384865, -0.000530516476973), 0);
+		cout << "------------------------------------\n";
+		curves.RefineCurve(5);
+		cout << "------------------------------------\n";
+		curves.ComputeFieldOnSingleCurve(1, complex<double>(0.002652582384865, -0.000530516476973), 0, 1e-4);
+		cout << "------------------------------------\n";
+		curves.ComputeFieldOnSingleCurve_GSL(1, complex<double>(0.002652582384865, -0.000530516476973), 0);*/
+
+		/*cout << "Generated random closed curve with " << nParams << " parameters.\n";
+		cout << "Generated curve length: " << curves.CurveLength() << endl;
+		cout << "Generated curve area: " << curves.CurveArea() << endl;*/
+		cout << "Interior region integration:\n";
+		t0 = tbb::tick_count::now();
+		cout << curves.CalculateQuantityOnMesh(1, 0, complex<double>(0.001, 0.001),0,1e-4) << endl<<flush;
+		t1 = tbb::tick_count::now();
+		printf("Simpson's integration (with TBB support) took %g seconds\n", (t1 - t0).seconds());
+		t0 = tbb::tick_count::now();
+		//cout << curves.CalculateQuantityOnMesh_GSL(1, 0, complex<double>(0.002652582384865, -0.000530516476973), 0, 1e-5) << endl;
+		cout << curves.CalculateQuantityOnMesh_GSL(1, 0, complex<double>(0.001, 0.001), 0, 1e-5) << endl;
+		t1 = tbb::tick_count::now();
+		cout << "GSL integration (with TBB support) took " << (t1 - t0).seconds() << " sec(s)\n";
+
+		//curves.save_analysis_model(output_curve_filename.c_str());
+		return 0;
+	}
+	else
+	{
+		cout << "Provide two filenames for saving the curve and the corresponding mesh\n";
+		return -1;
+	}
+}

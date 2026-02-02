@@ -1,0 +1,67 @@
+project (WICAN_2D_Solver)
+cmake_minimum_required (VERSION 2.6)
+
+
+SET(WICAN2D_SOURCE_DIR /mnt/d/linux/WICAN)
+SET(CMAKE_C_COMPILER   /usr/bin/mpicc)
+SET(CMAKE_CXX_COMPILER /usr/bin/mpic++)
+SET(GMSH_LIB /usr/local/lib/libgmsh.so)
+
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+    ${CMAKE_HOME_DIRECTORY}/usr/share/cmake-3.16/Modules
+    ${CMAKE_INSTALL_PREFIX}/usr/share/cmake-3.16/Modules
+    "${WICAN2D_SOURCE_DIR}/CMakeModules"
+    "./cmake/Modules"
+    "~/cmake/Modules"
+    "C:/cmake/Modules")
+
+FIND_PACKAGE(Boost REQUIRED)
+FIND_PACKAGE(GSL REQUIRED)
+FIND_PACKAGE(OpenMPI REQUIRED)
+FIND_PACKAGE(SISL REQUIRED)
+FIND_PACKAGE(GoTools REQUIRED)
+FIND_PACKAGE(IGES REQUIRED)
+FIND_PACKAGE(Pagmo REQUIRED)
+FIND_PACKAGE(TBB REQUIRED)
+
+# Include directories
+INCLUDE_DIRECTORIES(
+  ${GOTOOLS_INCLUDE_DIR}
+  ${SISL_INCLUDE_DIR}
+  ${GSL_INCLUDE_DIR}
+  ${OpenMPI_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIRS}
+  ${WICAN2D_SOURCE_DIR}/include
+  ${IGES_INCLUDE_DIR}
+  )
+
+
+set(CMAKE_CXX_FLAGS "-O3 -Wl,--allow-multiple-definition -std=c++17 -lpthread -Wall -pedantic -fpermissive -w") #Wl for multiple definitions
+
+# Linked in libraries
+
+SET(DEPLIBS
+   ${IGES_LIBRARIES}
+   ${GOTOOLS_LIBRARIES}
+   ${SISL_LIBRARIES}
+   ${OpenMPI_LIBRARIES}
+   ${GSL_LIBRARIES}
+   ${GMSH_LIB}
+  )
+
+FILE(GLOB_RECURSE wican2D_SRCS src/*.cpp include/*.h)
+
+ADD_LIBRARY(wican2D ${wican2D_SRCS})
+TARGET_LINK_LIBRARIES(wican2D TBB::tbb ${DEPLIBS})
+
+ADD_EXECUTABLE(test_splineCurve apps/test_splineCurve.cpp)
+TARGET_LINK_LIBRARIES(test_splineCurve wican2D ${DEPLIBS})
+
+ADD_EXECUTABLE(test_mesh apps/test_mesh.cpp)
+TARGET_LINK_LIBRARIES(test_mesh wican2D ${DEPLIBS})
+
+ADD_EXECUTABLE(test_pagmo apps/test_pagmo.cpp)
+TARGET_LINK_LIBRARIES(test_pagmo wican2D Pagmo::pagmo ${DEPLIBS})
+
+ADD_EXECUTABLE(test_opt apps/test_opt.cpp)
+TARGET_LINK_LIBRARIES(test_opt wican2D Pagmo::pagmo ${DEPLIBS})

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libPOMO.a CMakeFiles/POMO.dir/src/timr.cpp.o
+/usr/bin/ranlib libPOMO.a

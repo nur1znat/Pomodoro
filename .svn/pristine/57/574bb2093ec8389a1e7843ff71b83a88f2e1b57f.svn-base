@@ -1,0 +1,22 @@
+# Try to find the sisl librairies
+#  SISL_FOUND - system has sisl lib
+#  SISL_INCLUDE_DIR - the sisl include directory
+#  SISL_LIBRARIES - Libraries needed to use sisl
+
+IF(SISL_INCLUDE_DIR AND SISL_LIBRARIES)
+  # Already in cache, be silent
+  set(SISL_FIND_QUIETLY TRUE)
+ENDIF(SISL_INCLUDE_DIR AND SISL_LIBRARIES)
+
+find_path(SISL_INCLUDE_DIR 
+	  NAMES sisl.h 
+	  PATHS /mnt/d/linux/GoTools-Dec2023/sisl/include)
+
+find_library(SISL_LIBRARIES 
+             NAMES sisl
+	     PATHS /mnt/d/linux/GoTools-Dec2023/libs)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(SISL DEFAULT_MSG SISL_INCLUDE_DIR SISL_LIBRARIES)
+
+mark_as_advanced(SISL_INCLUDE_DIR SISL_LIBRARIES)

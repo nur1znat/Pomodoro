@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -Wl,--allow-multiple-definition -std=c++17 -lpthread -Wall -pedantic -fpermissive -w  -Wl,--dependency-file=CMakeFiles/pmapp.dir/link.d CMakeFiles/pmapp.dir/apps/pomoapp.cpp.o -o pmapp

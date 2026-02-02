@@ -1,0 +1,19 @@
+# Try to find the GA librairies
+
+IF(GA_INCLUDE_DIR AND GA_LIBRARIES)
+  # Already in cache, be silent
+  set(GA_FIND_QUIETLY TRUE)
+ENDIF(GA_INCLUDE_DIR AND GA_LIBRARIES)
+
+find_path(GA_INCLUDE_DIR 
+	  NAMES ga
+          PATHS /share/apps/include/)
+
+find_library(GA_LIBRARIES 
+             NAMES ga
+             PATHS /share/apps/libs)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(GA DEFAULT_MSG GA_INCLUDE_DIR GA_LIBRARIES)
+
+mark_as_advanced(GA_INCLUDE_DIR GA_LIBRARIES)

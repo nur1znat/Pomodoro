@@ -1,0 +1,22 @@
+FIND_PATH(GSL_INCLUDE_DIR
+          NAMES gsl/gsl_blas.h
+          PATHS /usr/include)
+
+FIND_LIBRARY(GSL_LIBRARIES
+             NAMES gsl
+             PATHS /usr/lib64)
+
+FIND_LIBRARY(GSLBLAS_LIBRARIES
+             NAMES gslcblas
+             PATHS /usr/lib64)
+
+
+SET(GSL_LIBRARIES
+    ${GSL_LIBRARIES}
+    ${GSLBLAS_LIBRARIES}
+)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(GSL DEFAULT_MSG GSL_LIBRARIES)
+
+mark_as_advanced(GSL_LIBRARIES)
