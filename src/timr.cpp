@@ -29,6 +29,7 @@ int showTime(const unsigned int t_in_min, const unsigned int type){
 	return 0;
 }
 Record::Record(){
+    ctype = "General";
     time_t now = time(0);
     tm *ltm = localtime(&now);
 
@@ -38,8 +39,7 @@ Record::Record(){
     weekday = 0 + ltm->tm_wday;
 }
 
-Record::Record(string file, string type){
-    cfile = file;
+Record::Record(string type){
     ctype = type;
     time_t now = time(0);
     tm *ltm = localtime(&now);
@@ -69,4 +69,6 @@ int Record::addTime(const unsigned int t_in_min){
     f << to_string(year) + "," + to_string(month) + "," + to_string(day) + "," + to_string(weekday) + "," + ctype + "," + to_string(t_in_min) + "," + "1\n";
 
     f.close();
+
+    return 0;
 }

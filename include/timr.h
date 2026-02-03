@@ -16,7 +16,7 @@ class Record{
 
     public:
         Record();
-        Record(string file, string type = "General");
+        Record(string type);
         ~Record() {}
         void setFile(string file){cfile = file;}
         void setType(string type){ctype = type;}
