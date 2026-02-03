@@ -1,6 +1,8 @@
 #include <time.h>
 #include <timr.h>
 #include <string.h>
+#include <fstream>
+#include <ctime>
 
 int showTime(const unsigned int t_in_min, const unsigned int type){
     unsigned int mins = 0;
@@ -25,4 +27,46 @@ int showTime(const unsigned int t_in_min, const unsigned int type){
         printf("\rTime is up!\n");
 
 	return 0;
+}
+Record::Record(){
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+
+    year = 1900 + ltm->tm_year;
+    month = 1 + ltm->tm_mon;
+    day = 0 + ltm->tm_mday;
+    weekday = 0 + ltm->tm_wday;
+}
+
+Record::Record(string file, string type){
+    cfile = file;
+    ctype = type;
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+
+    year = 1900 + ltm->tm_year;
+    month = 1 + ltm->tm_mon;
+    day = 0 + ltm->tm_mday;
+    weekday = 0 + ltm->tm_wday;
+}
+
+int Record::createFile(const string file){
+    cfile = file;
+    ofstream f;
+    f.open(file);
+
+    // if(!f.is_open()){ cout << "Error creating a file\n"; return 1;}
+    f << "Year,Month,Day,Weekday,Type,Worktime,NumSesh\n";
+    f.close();
+    return 0;
+}
+
+int Record::addTime(const unsigned int t_in_min){
+    ofstream f;
+    f.open(cfile, ios_base::app);
+
+    // if(!f.is_open()){ cout << "Error opening the file\n"; return 1;}
+    f << to_string(year) + "," + to_string(month) + "," + to_string(day) + "," + to_string(weekday) + "," + ctype + "," + to_string(t_in_min) + "," + "1\n";
+
+    f.close();
 }

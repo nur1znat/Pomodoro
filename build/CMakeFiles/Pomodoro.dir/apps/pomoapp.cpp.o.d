@@ -376,4 +376,11 @@ CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o: \
  /usr/include/c++/15.2.1/bits/stream_iterator.h \
  /usr/include/boost/program_options/variables_map.hpp \
  /usr/include/boost/program_options/version.hpp \
- /home/nur1znat/Pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream
+ /home/nur1znat/Pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream \
+ /usr/include/c++/15.2.1/filesystem /usr/include/c++/15.2.1/bits/fs_fwd.h \
+ /usr/include/c++/15.2.1/bits/chrono.h /usr/include/c++/15.2.1/ratio \
+ /usr/include/c++/15.2.1/bits/parse_numbers.h \
+ /usr/include/c++/15.2.1/bits/fs_path.h /usr/include/c++/15.2.1/iomanip \
+ /usr/include/c++/15.2.1/bits/quoted_string.h \
+ /usr/include/c++/15.2.1/codecvt /usr/include/c++/15.2.1/bits/fs_dir.h \
+ /usr/include/c++/15.2.1/bits/fs_ops.h

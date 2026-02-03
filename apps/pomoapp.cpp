@@ -1,7 +1,7 @@
 #include <boost/program_options.hpp>
 #include "timr.h"
 #include <string.h>
-
+#include <filesystem>
 
 using namespace std;
 using namespace boost::program_options;
@@ -13,6 +13,7 @@ int main(int argc, char* argv[])
 	unsigned int lb_time = 15; // Long break
 	unsigned int nw= 3; // number of Sessions before the long brk
 	unsigned int verbosity = 1; // Mnani koya saldim brak paidasi katti zhok. Krch run zhasaganda uakittardin summary-in beredi
+    bool saveRecord = 1;
 
     // 37-shi line-ga dein bari argument-ke option
 	try
@@ -24,6 +25,7 @@ int main(int argc, char* argv[])
 			("sb", value(&sb_time), "Short Break Time in min (default = 5), e.g., --sb 10")
 			("nw", value(&nw), "# of Work Session before Long break (default = 3), e.g., --nw 4")
 			("lb", value(&lb_time), "Long Break Time in min (default = 15), e.g., --lb 20")
+			("sv", value(&saveRecord), "Save the Records for Save (default = 1), e.g., --sv 0")
 			("verbosity", value(&verbosity), "Verbosity level (0 silent, 1 verbose)");
 			variables_map vm;
 		store(parse_command_line(argc, argv, desc, command_line_style::unix_style ^ command_line_style::allow_short), vm);
@@ -47,16 +49,38 @@ int main(int argc, char* argv[])
 	}
     cout << "------ Let it rip ------\n";
 
+    Record rec;
+    if(saveRecord){
+        string path = filesystem::current_path();
+        string file;
+
+        for (const auto & entry : filesystem::directory_iterator(path))
+            if (entry.path().extension() == ".csv"){
+                file = entry.path();
+                rec.setFile(file);
+            }
+
+        if(file.empty()){
+            cout << "No file found on record. Please give a name for a new file...";
+            cin >> file;
+            rec.createFile(path + "/" + file + ".csv");
+        }
+    }
+
     unsigned int temp_nw = nw;
     string str;
     while(true){
         // line 53-59, 1 loop of work sessions >1 dedim cuz if you don't want to continue, long break kerek emes
         if (temp_nw > 1){
             showTime(w_time,1);
+            if(saveRecord)
+                rec.addTime(w_time);
             temp_nw--;
             showTime(sb_time,2);
         }
         showTime(w_time,1);
+        if(saveRecord)
+            rec.addTime(w_time);
 
         // 1 loop bitkesin continue ma zhok pa
         cout << "Do you want to continue? (Y/N)";
