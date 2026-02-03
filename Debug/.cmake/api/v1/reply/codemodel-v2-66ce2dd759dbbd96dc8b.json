@@ -104,14 +104,14 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "POMO::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-POMO-Debug-3eb5e380efd1deb83d0c.json",
+					"jsonFile" : "target-POMO-Debug-3da343ef3affc9bc2b14.json",
 					"name" : "POMO",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "Pomodoro::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-Pomodoro-Debug-b95409035185f5880448.json",
+					"jsonFile" : "target-Pomodoro-Debug-49d41cfe4e1421e7f0f9.json",
 					"name" : "Pomodoro",
 					"projectIndex" : 0
 				}
@@ -121,8 +121,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "/home/nur1znat/pomodoro/Debug",
-		"source" : "/home/nur1znat/pomodoro"
+		"build" : "/home/nur1znat/Pomodoro/Debug",
+		"source" : "/home/nur1znat/Pomodoro"
 	},
 	"version" : 
 	{

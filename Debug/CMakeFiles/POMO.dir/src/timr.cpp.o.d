@@ -1,4 +1,4 @@
-CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
+CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
  /usr/include/stdc-predef.h /usr/include/time.h /usr/include/features.h \
  /usr/include/features-time64.h /usr/include/bits/wordsize.h \
  /usr/include/bits/timesize.h /usr/include/sys/cdefs.h \
@@ -15,7 +15,7 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
  /usr/include/bits/types/timer_t.h \
  /usr/include/bits/types/struct_itimerspec.h \
  /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h \
- /home/nur1znat/pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream \
+ /home/nur1znat/Pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream \
  /usr/include/c++/15.2.1/bits/requires_hosted.h \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++config.h \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/os_defines.h \
@@ -148,4 +148,5 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
  /usr/include/c++/15.2.1/bits/locale_facets.tcc \
  /usr/include/c++/15.2.1/bits/basic_ios.tcc \
  /usr/include/c++/15.2.1/bits/ostream.tcc /usr/include/c++/15.2.1/istream \
- /usr/include/c++/15.2.1/bits/istream.tcc
+ /usr/include/c++/15.2.1/bits/istream.tcc /usr/include/string.h \
+ /usr/include/strings.h

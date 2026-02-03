@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"/home/nur1znat/pomodoro/build/cmake_install.cmake"
+		"/home/nur1znat/Pomodoro/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

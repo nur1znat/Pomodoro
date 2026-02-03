@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/nur1znat/pomodoro/include
+CXX_INCLUDES = -I/home/nur1znat/Pomodoro/include
 
 CXX_FLAGS = -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w 
 

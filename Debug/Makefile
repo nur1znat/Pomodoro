@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/nur1znat/pomodoro
+CMAKE_SOURCE_DIR = /home/nur1znat/Pomodoro
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/nur1znat/pomodoro/Debug
+CMAKE_BINARY_DIR = /home/nur1znat/Pomodoro/Debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,16 +87,16 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/pomodoro/Debug/CMakeFiles /home/nur1znat/pomodoro/Debug//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/Pomodoro/Debug/CMakeFiles /home/nur1znat/Pomodoro/Debug//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/pomodoro/Debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/Pomodoro/Debug/CMakeFiles 0
 .PHONY : all
 
 # The main codegen target
 codegen: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/pomodoro/Debug/CMakeFiles /home/nur1znat/pomodoro/Debug//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/Pomodoro/Debug/CMakeFiles /home/nur1znat/Pomodoro/Debug//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 codegen
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/pomodoro/Debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/nur1znat/Pomodoro/Debug/CMakeFiles 0
 .PHONY : codegen
 
 # The main clean target

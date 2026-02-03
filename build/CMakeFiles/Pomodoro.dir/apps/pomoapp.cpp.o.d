@@ -1,5 +1,5 @@
 CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o: \
- /home/nur1znat/pomodoro/apps/pomoapp.cpp /usr/include/stdc-predef.h \
+ /home/nur1znat/Pomodoro/apps/pomoapp.cpp /usr/include/stdc-predef.h \
  /usr/include/boost/program_options.hpp \
  /usr/include/boost/program_options/options_description.hpp \
  /usr/include/boost/program_options/config.hpp \
@@ -376,4 +376,4 @@ CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o: \
  /usr/include/c++/15.2.1/bits/stream_iterator.h \
  /usr/include/boost/program_options/variables_map.hpp \
  /usr/include/boost/program_options/version.hpp \
- /home/nur1znat/pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream
+ /home/nur1znat/Pomodoro/include/timr.h /usr/include/c++/15.2.1/iostream

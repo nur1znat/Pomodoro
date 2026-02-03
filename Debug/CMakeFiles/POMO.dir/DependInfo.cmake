@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/nur1znat/pomodoro/src/timr.cpp" "CMakeFiles/POMO.dir/src/timr.cpp.o" "gcc" "CMakeFiles/POMO.dir/src/timr.cpp.o.d"
+  "/home/nur1znat/Pomodoro/src/timr.cpp" "CMakeFiles/POMO.dir/src/timr.cpp.o" "gcc" "CMakeFiles/POMO.dir/src/timr.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

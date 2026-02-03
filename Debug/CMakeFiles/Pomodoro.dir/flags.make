@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB
 
-CXX_INCLUDES = -I/home/nur1znat/pomodoro/include
+CXX_INCLUDES = -I/home/nur1znat/Pomodoro/include
 
 CXX_FLAGS = -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w  -g
 

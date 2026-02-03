@@ -1,4 +1,4 @@
-/home/nur1znat/pomodoro/Debug/CMakeFiles/POMO.dir
-/home/nur1znat/pomodoro/Debug/CMakeFiles/Pomodoro.dir
-/home/nur1znat/pomodoro/Debug/CMakeFiles/edit_cache.dir
-/home/nur1znat/pomodoro/Debug/CMakeFiles/rebuild_cache.dir
+/home/nur1znat/Pomodoro/Debug/CMakeFiles/POMO.dir
+/home/nur1znat/Pomodoro/Debug/CMakeFiles/Pomodoro.dir
+/home/nur1znat/Pomodoro/Debug/CMakeFiles/edit_cache.dir
+/home/nur1znat/Pomodoro/Debug/CMakeFiles/rebuild_cache.dir
