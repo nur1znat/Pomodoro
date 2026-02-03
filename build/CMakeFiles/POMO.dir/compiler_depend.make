@@ -203,6 +203,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
   /usr/include/stdc-predef.h \
   /usr/include/stdio.h \
   /usr/include/stdlib.h \
+  /usr/include/string.h \
+  /usr/include/strings.h \
   /usr/include/sys/cdefs.h \
   /usr/include/sys/select.h \
   /usr/include/sys/single_threaded.h \
@@ -219,6 +221,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
 /usr/include/sys/single_threaded.h:
 
 /usr/include/sys/select.h:
+
+/usr/include/string.h:
 
 /usr/include/stdio.h:
 
@@ -277,6 +281,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
 /usr/include/errno.h:
 
 /usr/include/c++/15.2.1/exception:
+
+/usr/include/strings.h:
 
 /usr/include/c++/15.2.1/istream:
 

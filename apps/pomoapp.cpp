@@ -8,12 +8,13 @@ using namespace boost::program_options;
 
 int main(int argc, char* argv[])
 {
-	unsigned int w_time = 25;
-	unsigned int sb_time = 5;
-	unsigned int lb_time = 15;
-	unsigned int nw= 3;
-	unsigned int verbosity = 1;
+	unsigned int w_time = 25; // bari minutpen Work time
+	unsigned int sb_time = 5; // Short break
+	unsigned int lb_time = 15; // Long break
+	unsigned int nw= 3; // number of Sessions before the long brk
+	unsigned int verbosity = 1; // Mnani koya saldim brak paidasi katti zhok. Krch run zhasaganda uakittardin summary-in beredi
 
+    // 37-shi line-ga dein bari argument-ke option
 	try
 	{
 		options_description desc("Pomodoro options");
@@ -49,19 +50,21 @@ int main(int argc, char* argv[])
     unsigned int temp_nw = nw;
     string str;
     while(true){
+        // line 53-59, 1 loop of work sessions >1 dedim cuz if you don't want to continue, long break kerek emes
         if (temp_nw > 1){
-            showTime(w_time);
+            showTime(w_time,1);
             temp_nw--;
-            showTime(sb_time);
+            showTime(sb_time,2);
         }
-        showTime(w_time);
+        showTime(w_time,1);
 
+        // 1 loop bitkesin continue ma zhok pa
         cout << "Do you want to continue? (Y/N)";
         cin >> str;
         if(str != "Y" && str != "y"){
             break;
         }
-        showTime(lb_time);
+        showTime(lb_time,3);
     }
 
 

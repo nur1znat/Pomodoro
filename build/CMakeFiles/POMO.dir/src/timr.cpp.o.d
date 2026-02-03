@@ -148,4 +148,5 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/pomodoro/src/timr.cpp \
  /usr/include/c++/15.2.1/bits/locale_facets.tcc \
  /usr/include/c++/15.2.1/bits/basic_ios.tcc \
  /usr/include/c++/15.2.1/bits/ostream.tcc /usr/include/c++/15.2.1/istream \
- /usr/include/c++/15.2.1/bits/istream.tcc
+ /usr/include/c++/15.2.1/bits/istream.tcc /usr/include/string.h \
+ /usr/include/strings.h
