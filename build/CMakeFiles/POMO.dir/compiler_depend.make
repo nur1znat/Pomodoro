@@ -125,14 +125,18 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
   /usr/include/c++/15.2.1/bits/ranges_util.h \
   /usr/include/c++/15.2.1/bits/refwrap.h \
   /usr/include/c++/15.2.1/bits/requires_hosted.h \
+  /usr/include/c++/15.2.1/bits/sstream.tcc \
   /usr/include/c++/15.2.1/bits/std_abs.h \
   /usr/include/c++/15.2.1/bits/stl_algobase.h \
+  /usr/include/c++/15.2.1/bits/stl_bvector.h \
   /usr/include/c++/15.2.1/bits/stl_construct.h \
   /usr/include/c++/15.2.1/bits/stl_function.h \
   /usr/include/c++/15.2.1/bits/stl_iterator.h \
   /usr/include/c++/15.2.1/bits/stl_iterator_base_funcs.h \
   /usr/include/c++/15.2.1/bits/stl_iterator_base_types.h \
   /usr/include/c++/15.2.1/bits/stl_pair.h \
+  /usr/include/c++/15.2.1/bits/stl_uninitialized.h \
+  /usr/include/c++/15.2.1/bits/stl_vector.h \
   /usr/include/c++/15.2.1/bits/streambuf.tcc \
   /usr/include/c++/15.2.1/bits/streambuf_iterator.h \
   /usr/include/c++/15.2.1/bits/string_view.tcc \
@@ -140,6 +144,7 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
   /usr/include/c++/15.2.1/bits/uses_allocator.h \
   /usr/include/c++/15.2.1/bits/uses_allocator_args.h \
   /usr/include/c++/15.2.1/bits/utility.h \
+  /usr/include/c++/15.2.1/bits/vector.tcc \
   /usr/include/c++/15.2.1/bits/version.h \
   /usr/include/c++/15.2.1/cctype \
   /usr/include/c++/15.2.1/cerrno \
@@ -170,6 +175,7 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
   /usr/include/c++/15.2.1/numbers \
   /usr/include/c++/15.2.1/ostream \
   /usr/include/c++/15.2.1/pstl/pstl_config.h \
+  /usr/include/c++/15.2.1/sstream \
   /usr/include/c++/15.2.1/stdexcept \
   /usr/include/c++/15.2.1/streambuf \
   /usr/include/c++/15.2.1/string \
@@ -178,6 +184,7 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
   /usr/include/c++/15.2.1/tuple \
   /usr/include/c++/15.2.1/type_traits \
   /usr/include/c++/15.2.1/typeinfo \
+  /usr/include/c++/15.2.1/vector \
   /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/atomic_word.h \
   /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/basic_file.h \
   /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++allocator.h \
@@ -272,7 +279,11 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 
 /usr/include/c++/15.2.1/string:
 
+/usr/include/c++/15.2.1/vector:
+
 /usr/include/c++/15.2.1/stdexcept:
+
+/usr/include/c++/15.2.1/sstream:
 
 /usr/include/c++/15.2.1/iostream:
 
@@ -285,10 +296,6 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 /usr/include/c++/15.2.1/ext/numeric_traits.h:
 
 /usr/include/c++/15.2.1/ext/alloc_traits.h:
-
-/usr/include/errno.h:
-
-/usr/include/c++/15.2.1/exception:
 
 /usr/include/strings.h:
 
@@ -322,6 +329,12 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 
 /usr/include/c++/15.2.1/bits/streambuf_iterator.h:
 
+/usr/include/errno.h:
+
+/usr/include/c++/15.2.1/exception:
+
+/usr/include/c++/15.2.1/bits/stl_vector.h:
+
 /usr/include/c++/15.2.1/bits/stl_iterator_base_types.h:
 
 /usr/include/c++/15.2.1/bits/stl_iterator.h:
@@ -337,10 +350,6 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 /usr/include/bits/atomic_wide_counter.h:
 
 /usr/include/c++/15.2.1/bits/basic_string.h:
-
-/usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/cpu_defines.h:
-
-/usr/include/bits/types/__locale_t.h:
 
 /usr/include/bits/types/__FILE.h:
 
@@ -361,6 +370,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 /usr/include/bits/types/sigset_t.h:
 
 /usr/include/c++/15.2.1/bits/locale_classes.h:
+
+/usr/include/c++/15.2.1/bits/stl_uninitialized.h:
 
 /usr/include/bits/stdlib-bsearch.h:
 
@@ -439,6 +450,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 /usr/include/c++/15.2.1/bits/basic_ios.h:
 
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h:
+
+/usr/include/c++/15.2.1/bits/vector.tcc:
 
 /home/nur1znat/Pomodoro/include/timr.h:
 
@@ -538,6 +551,12 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 
 /usr/include/bits/types/timer_t.h:
 
+/usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/cpu_defines.h:
+
+/usr/include/bits/types/__locale_t.h:
+
+/usr/include/c++/15.2.1/bits/sstream.tcc:
+
 /usr/include/c++/15.2.1/backward/binders.h:
 
 /usr/include/c++/15.2.1/bits/stl_iterator_base_funcs.h:
@@ -559,6 +578,8 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 /usr/include/c++/15.2.1/cctype:
 
 /usr/include/c++/15.2.1/bits/hash_bytes.h:
+
+/usr/include/c++/15.2.1/bits/stl_bvector.h:
 
 /usr/include/c++/15.2.1/bits/locale_facets.tcc:
 
@@ -594,11 +615,11 @@ CMakeFiles/POMO.dir/src/timr.cpp.o: /home/nur1znat/Pomodoro/src/timr.cpp \
 
 /usr/include/c++/15.2.1/bits/exception_ptr.h:
 
+/usr/include/c++/15.2.1/bits/stl_construct.h:
+
 /usr/include/bits/cpu-set.h:
 
 /usr/include/c++/15.2.1/bits/cpp_type_traits.h:
-
-/usr/include/c++/15.2.1/bits/stl_construct.h:
 
 /usr/include/c++/15.2.1/bits/fstream.tcc:
 

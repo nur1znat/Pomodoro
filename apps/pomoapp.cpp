@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 	if (verbosity)
 	{
 		cout << "- Pomodoro parameters -\n";
+		cout << "Task Name: " << task << endl;
 		cout << "Work Time: " << w_time << endl;
 		cout << "Short Break Time: " << sb_time << endl;
 		cout << "Number of Work Sessions: " << nw << endl;
@@ -54,18 +55,41 @@ int main(int argc, char* argv[])
     Record rec(task);
     if(saveRecord){
         string path = filesystem::current_path();
+        vector<string> files;
         string file;
+        char *hmpth = getenv("HOME");
+        string pth(hmpth);
+        pth = pth + "/.pomodoro";
 
-        for (const auto & entry : filesystem::directory_iterator(path))
+
+        if(!filesystem::is_directory(pth))
+            filesystem::create_directory(pth);
+
+        for (const auto & entry : filesystem::directory_iterator(pth))
             if (entry.path().extension() == ".csv"){
-                file = entry.path();
-                rec.setFile(file);
+                files.push_back(entry.path());
             }
 
-        if(file.empty()){
+        if(files.empty()){
             cout << "No file found on record. Please give a name for a new file...";
             cin >> file;
-            rec.createFile(path + "/" + file + ".csv");
+            cout << pth + "/" + file + ".csv" << endl;
+            rec.createFile(pth + "/" + file + ".csv");
+        }else if(files.size() > 1){
+            int choice;
+            cout << "Found more than 1 csv file. Please specify which one is yours!" << endl;
+            for (int i = 0; i < files.size(); i++){
+                cout << i + 1 << ": " << filesystem::path(files[i]).filename().string() << endl;
+            }
+            cout << "Your choice: ";
+            cin >> choice;
+
+            file = files[choice-1];
+            rec.setFile(file);
+            cout << "Your choice is " << filesystem::path(file).filename().string() << endl;
+        }else{
+            file = files[0];
+            rec.setFile(file);
         }
     }
 
@@ -83,6 +107,7 @@ int main(int argc, char* argv[])
             showTime(sb_time,2);
         }
         showTime(w_time,1);
+
         if(saveRecord)
             rec.addTime(w_time);
 

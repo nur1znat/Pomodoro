@@ -1,8 +1,11 @@
 #include <time.h>
 #include <timr.h>
-#include <string.h>
+#include <string>
 #include <fstream>
+#include <sstream>
+#include <cstdio>
 #include <ctime>
+#include <vector>
 
 int showTime(const unsigned int t_in_min, const unsigned int type){
     unsigned int mins = 0;
@@ -62,13 +65,56 @@ int Record::createFile(const string file){
 }
 
 int Record::addTime(const unsigned int t_in_min){
-    ofstream f;
-    f.open(cfile, ios_base::app);
+    string line;
+    bool found = false;
+    ifstream rf(cfile);
+    ofstream wf("temp.csv");
+    string stringToFind = to_string(year) + ',' + to_string(month) + ',' + to_string(day) + ',' + to_string(weekday) + ','+ ctype;
+    size_t len = stringToFind.length();
+    size_t inc = 0;
+    while (getline(rf, line))
+    {
+        while (true)
+        {
+            size_t pos = line.find(stringToFind);
+            if (pos != string::npos){
+                while(line[pos+len+1+inc] != ','){
+                    inc++;
+                }
+                line.replace(pos+len+1, inc, to_string(stoi(line.substr(pos+len+1,inc)) + t_in_min));
+                pos = pos + len + inc + 2;
+                inc = 0;
+                while(line[pos+inc] >= '0' && line[pos+inc] <='9'){
+                    inc++;
+                }
+                line.replace(pos, inc, to_string(stoi(line.substr(pos,inc)) + 1));
+                found = true;
+                break;
+            }else{
+                break;
+            }
+        }
 
-    // if(!f.is_open()){ cout << "Error opening the file\n"; return 1;}
-    f << to_string(year) + "," + to_string(month) + "," + to_string(day) + "," + to_string(weekday) + "," + ctype + "," + to_string(t_in_min) + "," + "1\n";
+        wf << line << '\n';
+    }
+    rf.close();
+    wf.close();
+    remove(&cfile[0]);
 
-    f.close();
+    if (found){
+        rename("temp.csv",&cfile[0]);
+    }
+    else{
+        ofstream wf(cfile);
+        ifstream rf("temp.csv");
+        wf << "Year,Month,Day,Weekday,Type,Worktime,NumSesh\n";
+        wf << to_string(year) + "," + to_string(month) + "," + to_string(day) + "," + to_string(weekday) + "," + ctype + "," + to_string(t_in_min) + "," + "1\n";
+        getline(rf,line);
+        wf << rf.rdbuf();
+        rf.close();
+        wf.close();
+        std::remove("temp.csv");
+    }
 
     return 0;
 }
