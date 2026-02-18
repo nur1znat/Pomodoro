@@ -97,14 +97,17 @@ int main(int argc, char* argv[])
     string str;
     while(true){
         // line 53-59, 1 loop of work sessions >1 dedim cuz if you don't want to continue, long break kerek emes
-        if (temp_nw > 1){
+        while (temp_nw > 1){
+            temp_nw--;
             showTime(w_time,1);
 
             if(saveRecord)
                 rec.addTime(w_time);
 
-            temp_nw--;
+            system("notify-send --app-name=Pomo \"Take a break\"");
+
             showTime(sb_time,2);
+            system("notify-send --app-name=Pomo \"Get back to work\"");
         }
         showTime(w_time,1);
 
@@ -112,12 +115,17 @@ int main(int argc, char* argv[])
             rec.addTime(w_time);
 
         // 1 loop bitkesin continue ma zhok pa
+        system("notify-send --app-name=Pomo \"Do you want to continue?\"");
+
         cout << "Do you want to continue? (Y/N)";
         cin >> str;
         if(str != "Y" && str != "y"){
             break;
         }
+        temp_nw = nw;
         showTime(lb_time,3);
+
+        system("notify-send --app-name=Pomo \"Get back to work\"");
     }
 
 
