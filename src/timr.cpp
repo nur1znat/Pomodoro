@@ -1,36 +1,9 @@
-#include <time.h>
 #include <timr.h>
-#include <string>
 #include <fstream>
-#include <sstream>
-#include <cstdio>
-#include <ctime>
-#include <vector>
+#include <thread>
+#include <chrono>
+using namespace std::chrono_literals;
 
-int showTime(const unsigned int t_in_min, const unsigned int type){
-    unsigned int mins = 0;
-    unsigned int sec = 0;
-    unsigned int s_w_time = t_in_min * 60;
-
-    if(type == 2){ cout << "Take a short break...\n";
-    }else if(type == 3){ cout << "Take a long break...\n";
-    }else{ cout << "\rWork..\n";}
-
-    while(s_w_time > 0){
-        mins = s_w_time / 60;
-        sec = s_w_time % 60;
-        printf("\r%02d:%02d", mins, sec);
-        fflush(stdout);
-        clock_t stop = clock() + CLOCKS_PER_SEC;
-        while (clock() < stop) {}
-
-        s_w_time--;
-
-    }
-        printf("\rTime is up!\n");
-
-	return 0;
-}
 Record::Record(){
     ctype = "General";
     time_t now = time(0);
@@ -64,7 +37,64 @@ int Record::createFile(const string file){
     return 0;
 }
 
-int Record::addTime(const unsigned int t_in_min){
+int Record::showTime(const unsigned int t_in_min, const unsigned int type, const bool svRcrd){
+    unsigned int mins = 0;
+    unsigned int sec = 0;
+    unsigned int s_w_time = t_in_min * 60;
+    bool timerRunning;
+    if(type == 2){ cout << "Take a short break...\n";
+    }else if(type == 3){ cout << "Take a long break...\n";
+    }else{ cout << "\rWork..\n";}
+    const int write_incr = 60;
+    int next_write = s_w_time - write_incr;
+    bool frst = true;
+
+    while(s_w_time > 0){
+        mins = s_w_time / 60;
+        sec = s_w_time % 60;
+        timerRunning = true;
+        printf("\r%02d:%02d", mins, sec);
+        fflush(stdout);
+        auto start = chrono::steady_clock::now();
+        this_thread::sleep_for(900ms);
+        while(timerRunning){
+            auto now = chrono::steady_clock::now();
+            if (chrono::duration_cast<chrono::milliseconds>(now-start) >= 1000ms) {
+                timerRunning = false;
+                s_w_time--;
+            }
+            this_thread::sleep_for(2ms);
+        }
+
+        if(type == 1 && svRcrd && s_w_time <= next_write){
+            next_write = next_write - write_incr;
+            if(next_write > 0){
+                if (frst){
+                    this->addTime(write_incr/60, 1);
+                    frst = false;
+                }else {
+                    this->addTime(write_incr/60);
+                }
+            }else{
+                this->addTime(1);
+            }
+        }
+    }
+
+    // if(type == 1 && svRcrd){
+    //     this->addTime((write_incr - next_write)/60);
+    // }
+
+    printf("\rTime is up!\n");
+
+	return 0;
+}
+
+int Record::addTime(const unsigned int t_in_min, const unsigned int incr){
+    if(t_in_min == 0){
+        return 0;
+    }
+
     string line;
     bool found = false;
     ifstream rf(cfile);
@@ -72,6 +102,7 @@ int Record::addTime(const unsigned int t_in_min){
     string stringToFind = to_string(year) + ',' + to_string(month) + ',' + to_string(day) + ',' + to_string(weekday) + ','+ ctype;
     size_t len = stringToFind.length();
     size_t inc = 0;
+    int bef, aft;
     while (getline(rf, line))
     {
         while (true)
@@ -81,13 +112,21 @@ int Record::addTime(const unsigned int t_in_min){
                 while(line[pos+len+1+inc] != ','){
                     inc++;
                 }
-                line.replace(pos+len+1, inc, to_string(stoi(line.substr(pos+len+1,inc)) + t_in_min));
+                bef = stoi(line.substr(pos+len+1,inc));
+                aft = bef + t_in_min;
+                line.replace(pos+len+1, inc, to_string(aft));
+
+                if((bef < 10 && aft >= 10) || (bef < 100 && aft >= 100) || (bef < 1000 && aft >= 1000)){
+                    pos++;
+                }
+
                 pos = pos + len + inc + 2;
+
                 inc = 0;
                 while(line[pos+inc] >= '0' && line[pos+inc] <='9'){
                     inc++;
                 }
-                line.replace(pos, inc, to_string(stoi(line.substr(pos,inc)) + 1));
+                line.replace(pos, inc, to_string(stoi(line.substr(pos,inc)) + incr));
                 found = true;
                 break;
             }else{

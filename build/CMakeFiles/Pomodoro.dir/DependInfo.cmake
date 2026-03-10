@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/nur1znat/Pomodoro/apps/pomoapp.cpp" "CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o" "gcc" "CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o.d"
+  "/home/nur1znat/Desktop/Pomodoro/apps/pomoapp.cpp" "CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o" "gcc" "CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o.d"
   "" "Pomodoro" "gcc" "CMakeFiles/Pomodoro.dir/link.d"
   )
 

@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 4.2)
 project (Pomodoro)
 
-SET(POMODORO_SOURCE_DIR /home/nur1znat/Pomodoro)
+SET(POMODORO_SOURCE_DIR /home/nur1znat/Desktop/Pomodoro)
 
 FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 

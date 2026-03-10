@@ -1,6 +1,5 @@
 #include <boost/program_options.hpp>
 #include "timr.h"
-#include <string.h>
 #include <filesystem>
 
 using namespace std;
@@ -15,6 +14,7 @@ int main(int argc, char* argv[])
 	string task = "General"; // number of Sessions before the long brk
 	unsigned int verbosity = 1; // Mnani koya saldim brak paidasi katti zhok. Krch run zhasaganda uakittardin summary-in beredi
     bool saveRecord = 1;
+    bool sound = 1;
 
     // 37-shi line-ga dein bari argument-ke option
 	try
@@ -28,7 +28,8 @@ int main(int argc, char* argv[])
 			("lb", value(&lb_time), "Long Break Time in min (default = 15), e.g., --lb 20")
 			("sv", value(&saveRecord), "Save the Records for Stats (default = 1), e.g., --sv 0")
 			("ts", value(&task), "Task or Type name (default = \"General\"), e.g., --ts Math")
-			("verbosity", value(&verbosity), "Verbosity level (0 silent, 1 verbose)");
+			("vb", value(&verbosity), "Verbosity level (0 silent, 1 verbose)")
+			("sd", value(&sound), "Sound (0 silent, 1 notify with Sound)");
 			variables_map vm;
 		store(parse_command_line(argc, argv, desc, command_line_style::unix_style ^ command_line_style::allow_short), vm);
 		notify(vm);
@@ -49,6 +50,7 @@ int main(int argc, char* argv[])
 		cout << "Short Break Time: " << sb_time << endl;
 		cout << "Number of Work Sessions: " << nw << endl;
 		cout << "Long Break Time: " << lb_time << endl;
+		cout << "Sound: " << sound << endl;
 	}
     cout << "------ Let it rip ------\n";
 
@@ -57,10 +59,9 @@ int main(int argc, char* argv[])
         string path = filesystem::current_path();
         vector<string> files;
         string file;
-        char *hmpth = getenv("HOME");
+        const char *hmpth = getenv("HOME");
         string pth(hmpth);
         pth = pth + "/.pomodoro";
-
 
         if(!filesystem::is_directory(pth))
             filesystem::create_directory(pth);
@@ -93,29 +94,32 @@ int main(int argc, char* argv[])
         }
     }
 
+    char soundCmd[100] = "paplay ";
+    strcat(soundCmd, getenv("HOME"));
+    strcat(soundCmd, "/.config/swaync/Sounds/sound.mp3");
+    string notify = "notify-send -a Pomo -i ~/.config/swaync/icons/timer.png Pomodoro: ";
+
     unsigned int temp_nw = nw;
     string str;
     while(true){
         // line 53-59, 1 loop of work sessions >1 dedim cuz if you don't want to continue, long break kerek emes
         while (temp_nw > 1){
             temp_nw--;
-            showTime(w_time,1);
+            rec.showTime(w_time,1,saveRecord);
 
-            if(saveRecord)
-                rec.addTime(w_time);
+            system(&(notify + "\"Take a break.\"")[0]);
+            if(sound){ system(&soundCmd[0]);}
 
-            system("notify-send --app-name=Pomo \"Take a break\"");
+            rec.showTime(sb_time,2);
 
-            showTime(sb_time,2);
-            system("notify-send --app-name=Pomo \"Get back to work\"");
+            system(&(notify + "\"Get back to work.\"")[0]);
+            if(sound){ system(&soundCmd[0]);}
         }
-        showTime(w_time,1);
-
-        if(saveRecord)
-            rec.addTime(w_time);
+        rec.showTime(w_time,1, saveRecord);
 
         // 1 loop bitkesin continue ma zhok pa
-        system("notify-send --app-name=Pomo \"Do you want to continue?\"");
+        system(&(notify + "\"Do you want to continue?\"")[0]);
+        if(sound){ system(&soundCmd[0]);}
 
         cout << "Do you want to continue? (Y/N)";
         cin >> str;
@@ -123,9 +127,10 @@ int main(int argc, char* argv[])
             break;
         }
         temp_nw = nw;
-        showTime(lb_time,3);
+        rec.showTime(lb_time,3);
 
-        system("notify-send --app-name=Pomo \"Get back to work\"");
+        system(&(notify + "\"Get back to work.\"")[0]);
+        if(sound){ system(&soundCmd[0]);}
     }
 
 

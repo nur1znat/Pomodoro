@@ -1,14 +1,14 @@
 [
 {
-  "directory": "/home/nur1znat/Pomodoro/Debug",
-  "command": "/usr/bin/c++  -I/home/nur1znat/Pomodoro/include -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w  -g -o CMakeFiles/POMO.dir/src/timr.cpp.o -c /home/nur1znat/Pomodoro/src/timr.cpp",
-  "file": "/home/nur1znat/Pomodoro/src/timr.cpp",
+  "directory": "/home/nur1znat/Desktop/Pomodoro/Debug",
+  "command": "/usr/bin/c++  -I/home/nur1znat/Desktop/Pomodoro/include -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w  -g -o CMakeFiles/POMO.dir/src/timr.cpp.o -c /home/nur1znat/Desktop/Pomodoro/src/timr.cpp",
+  "file": "/home/nur1znat/Desktop/Pomodoro/src/timr.cpp",
   "output": "CMakeFiles/POMO.dir/src/timr.cpp.o"
 },
 {
-  "directory": "/home/nur1znat/Pomodoro/Debug",
-  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/nur1znat/Pomodoro/include -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w  -g -o CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o -c /home/nur1znat/Pomodoro/apps/pomoapp.cpp",
-  "file": "/home/nur1znat/Pomodoro/apps/pomoapp.cpp",
+  "directory": "/home/nur1znat/Desktop/Pomodoro/Debug",
+  "command": "/usr/bin/c++ -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/nur1znat/Desktop/Pomodoro/include -O3 -Wl,--allow-multiple-definition -std=c++20 -lpthread -Wall -pedantic -fpermissive -w  -g -o CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o -c /home/nur1znat/Desktop/Pomodoro/apps/pomoapp.cpp",
+  "file": "/home/nur1znat/Desktop/Pomodoro/apps/pomoapp.cpp",
   "output": "CMakeFiles/Pomodoro.dir/apps/pomoapp.cpp.o"
 }
 ]
