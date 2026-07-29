@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg:#15120D;
+    --surface:#1E1A13;
+    --surface-2:#262019;
+    --border:#332C21;
+    --text-primary:#F3ECDC;
+    --text-secondary:#A99C86;
+    --text-muted:#6E6353;
+    --accent:#E8543A;
+    --font-mono:'IBM Plex Mono', ui-monospace, monospace;
+    --font-sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:var(--font-sans);
+    padding:2.5rem 1.5rem 4rem;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+  header{margin-bottom:2rem;}
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:.08em;
+    color:var(--accent);
+    text-transform:uppercase;
+    margin:0 0 .5rem;
+  }
+  h1{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:28px;
+    margin:0 0 .35rem;
+  }
+  .sub{color:var(--text-secondary);font-size:14px;margin:0;}
+
+  details.data-panel{
+    margin-top:1.5rem;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:.9rem 1.1rem;
+  }
+  details.data-panel summary{
+    cursor:pointer;
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--text-secondary);
+    outline:none;
+  }
+  textarea{
+    width:100%;
+    min-height:140px;
+    margin-top:.8rem;
+    background:var(--bg);
+    color:var(--text-primary);
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:.7rem;
+    resize:vertical;
+  }
+  .panel-actions{display:flex;gap:.6rem;margin-top:.7rem;align-items:center;flex-wrap:wrap;}
+  button{
+    font-family:var(--font-mono);
+    font-size:12px;
+    background:transparent;
+    color:var(--text-primary);
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:.5rem .9rem;
+    cursor:pointer;
+  }
+  button.primary{background:var(--accent);border-color:var(--accent);color:#2B0E06;font-weight:600;}
+  button:hover{border-color:var(--text-secondary);}
+  .parse-error{color:#E8543A;font-size:12px;font-family:var(--font-mono);margin-top:.5rem;}
+  .dropzone{
+    margin-top:.9rem;
+    border:1px dashed var(--border);
+    border-radius:8px;
+    padding:1.4rem 1rem;
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--text-muted);
+    transition:border-color .15s, color .15s;
+  }
+  .dropzone.drag-over{border-color:var(--accent);color:var(--text-secondary);}
+  .file-status{
+    font-size:12px;color:var(--text-secondary);font-family:var(--font-mono);
+    display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  }
+  .file-status .dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);flex:none;}
+  .file-status.live .dot{background:#3AA88A;}
+  .paste-fallback summary{font-size:12px;color:var(--text-muted);cursor:pointer;}
+  .paste-fallback{margin-top:1rem;}
+
+  section{margin-top:2.5rem;}
+  .section-label{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--text-muted);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    margin:0 0 1rem;
+  }
+
+  /* Hero dial */
+  .hero{display:flex;gap:2.5rem;align-items:center;flex-wrap:wrap;}
+  .dial-outer{
+    width:230px;height:230px;border-radius:50%;
+    background:repeating-conic-gradient(var(--text-muted) 0deg 1.1deg, transparent 1.1deg 6deg);
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .dial-inner{
+    width:196px;height:196px;border-radius:50%;
+    background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+  }
+  .dial-inner svg{position:absolute;top:0;left:0;transform:rotate(-90deg);}
+  .dial-center{position:relative;text-align:center;}
+  .dial-number{font-family:var(--font-mono);font-size:34px;font-weight:600;line-height:1;}
+  .dial-label{font-size:11px;color:var(--text-secondary);margin-top:.3rem;}
+
+  .legend{display:flex;flex-direction:column;gap:.6rem;}
+  .legend-row{display:flex;align-items:center;gap:.6rem;font-size:13px;}
+  .swatch{width:10px;height:10px;border-radius:2px;flex:none;}
+  .legend-name{color:var(--text-primary);min-width:70px;}
+  .legend-val{color:var(--text-secondary);font-family:var(--font-mono);font-size:12px;}
+
+  /* Stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px,1fr));gap:.75rem;}
+  .stat-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:1rem;
+  }
+  .stat-label{font-size:12px;color:var(--text-secondary);}
+  .stat-value{font-family:var(--font-mono);font-size:22px;font-weight:600;margin-top:.35rem;}
+
+  /* Calendar heatmap */
+  .cal-scroll{display:flex;gap:1.5rem;overflow-x:auto;padding-bottom:.5rem;}
+  .cal-month{flex:none;}
+  .cal-month h4{
+    font-family:var(--font-mono);font-size:12px;font-weight:500;
+    color:var(--text-secondary);margin:0 0 .5rem;
+  }
+  .cal-grid{display:grid;grid-template-columns:repeat(7,16px);gap:3px;}
+  .cal-cell{width:16px;height:16px;border-radius:3px;background:var(--surface-2);}
+  .cal-dow{
+    display:grid;grid-template-columns:repeat(7,16px);gap:3px;margin-bottom:3px;
+  }
+  .cal-dow span{font-size:9px;color:var(--text-muted);text-align:center;font-family:var(--font-mono);}
+
+  .chart-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:1.1rem 1.1rem 1.3rem;
+  }
+  .chart-box{position:relative;width:100%;height:220px;}
+  .range-bar{
+    display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;
+    margin-bottom:2rem;
+  }
+  .range-label{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.06em;
+  }
+  #rangeToggle{flex-wrap:wrap;}
+  #rangeToggle .seg-btn{padding:.45rem .8rem;}
+
+  .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;flex-wrap:wrap;gap:.5rem;}
+  .chart-header-controls{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;}
+  .type-select{
+    font-family:var(--font-mono);font-size:11px;
+    background:var(--bg);color:var(--text-primary);
+    border:1px solid var(--border);border-radius:7px;
+    padding:.4rem .6rem;cursor:pointer;
+  }
+  .type-select:hover{border-color:var(--text-secondary);}
+  .seg-control{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+  .seg-btn{
+    font-family:var(--font-mono);font-size:11px;
+    background:transparent;color:var(--text-secondary);
+    border:none;padding:.4rem .7rem;cursor:pointer;
+  }
+  .seg-btn+.seg-btn{border-left:1px solid var(--border);}
+  .seg-btn.active{background:var(--accent);color:#2B0E06;font-weight:600;}
+  .seg-btn:hover:not(.active){color:var(--text-primary);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+  @media (max-width:640px){.two-col{grid-template-columns:1fr;}}
+
+  .stats-filter-bar{margin-top:2.5rem;margin-bottom:-1.5rem;}
+  .stats-filter-note{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);}
+
+  footer{margin-top:3rem;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Session log</p>
+    <h1>Focus log</h1>
+    <p class="sub" id="dateRangeSub">Visualizing your pomodoro history.</p>
+  </header>
+
+  <div class="range-bar">
+    <span class="range-label">Time range</span>
+    <div class="seg-control" id="rangeToggle">
+      <button type="button" class="seg-btn" data-range="7">1 week</button>
+      <button type="button" class="seg-btn" data-range="14">2 weeks</button>
+      <button type="button" class="seg-btn" data-range="30">1 month</button>
+      <button type="button" class="seg-btn" data-range="90">3 months</button>
+      <button type="button" class="seg-btn" data-range="180">6 months</button>
+      <button type="button" class="seg-btn active" data-range="all">All time</button>
+    </div>
+  </div>
+
+  <details class="data-panel" id="dataPanel">
+    <summary>Load CSV</summary>
+    <div class="panel-actions">
+      <button class="primary" id="chooseFileBtn" type="button">Choose CSV file</button>
+      <button id="reloadFileBtn" type="button" style="display:none;">Reload from file</button>
+      <span class="file-status" id="fileStatus"><span class="dot"></span><span id="fileStatusText">Showing sample data</span></span>
+    </div>
+    <div class="dropzone" id="dropzone">Or drag and drop your CSV file here</div>
+    <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none;">
+
+    <details class="paste-fallback">
+      <summary>Paste CSV text instead</summary>
+      <textarea id="csvInput" spellcheck="false"></textarea>
+      <div class="panel-actions">
+        <button id="updateBtn" type="button">Update from pasted text</button>
+      </div>
+    </details>
+
+    <div class="parse-error" id="parseError" style="display:none;"></div>
+  </details>
+
+  <section>
+    <p class="section-label">Overview</p>
+    <div class="hero">
+      <div class="dial-outer">
+        <div class="dial-inner">
+          <svg id="dialSvg" viewBox="0 0 196 196" width="196" height="196"></svg>
+          <div class="dial-center">
+            <div class="dial-number" id="dialNumber">0</div>
+            <div class="dial-label">hours logged</div>
+          </div>
+        </div>
+      </div>
+      <div class="legend" id="typeLegend"></div>
+    </div>
+  </section>
+
+  <div class="range-bar stats-filter-bar" id="statsFilterBar">
+    <span class="range-label">Filter by type</span>
+    <select id="statsTypeSelect" class="type-select">
+      <option value="all">All types</option>
+    </select>
+    <span class="stats-filter-note">applies to stats, daily activity &amp; by-weekday below</span>
+  </div>
+
+  <section>
+    <p class="section-label">Stats</p>
+    <div class="stat-grid" id="statGrid"></div>
+  </section>
+
+  <section>
+    <p class="section-label">Daily activity</p>
+    <div class="cal-scroll" id="calScroll"></div>
+  </section>
+
+  <section>
+    <div class="chart-card">
+      <div class="chart-header">
+        <p class="section-label" style="margin:0;">Trend over time</p>
+        <div class="chart-header-controls">
+          <select id="trendTypeSelect" class="type-select">
+            <option value="all">All types</option>
+          </select>
+          <div class="seg-control" id="trendToggle">
+            <button type="button" class="seg-btn active" data-granularity="day">Daily</button>
+            <button type="button" class="seg-btn" data-granularity="week">Weekly</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="trendChart" role="img" aria-label="Line chart of total focus minutes over time"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="chart-card">
+      <p class="section-label" style="margin-bottom:.6rem;">By weekday</p>
+      <div class="chart-box"><canvas id="weekdayChart" role="img" aria-label="Bar chart of total focus minutes by day of week"></canvas></div>
+    </div>
+  </section>
+
+  <footer>Paste a fresh export any time and hit update — nothing leaves your browser.</footer>
+</div>
+
+<script>
+const PALETTE = ['#E8543A','#3AA88A','#E8A23A','#8B6FD9','#4F8FE0','#D9598F'];
+const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+let typeChart=null, weekdayChart=null, trendChart=null;
+let currentByDay={}, currentByWeek={}, activeTrendGranularity='day';
+let currentByDayByType={}, currentByWeekByType={}, activeTrendType='all';
+let currentTypeColors={};
+let allRecords=[], globalMaxDate=null, activeRangeDays='all';
+let lastRangeRecords=[], activeStatsType='all';
+
+// __CSV_DATA_START__
+const DEFAULT_CSV = "__CSV_DATA_PLACEHOLDER__";
+// __CSV_DATA_END__
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim().length);
+  if(lines.length<2) throw new Error('Need a header row plus at least one data row.');
+  const header = lines[0].split(',').map(h=>h.trim().toLowerCase());
+  const idx = {
+    y: header.indexOf('year'), mo: header.indexOf('month'), d: header.indexOf('day'),
+    type: header.indexOf('type'), wt: header.indexOf('worktime'), ns: header.indexOf('numsesh')
+  };
+  for(const k in idx){ if(idx[k]===-1) throw new Error('Missing expected column: '+k); }
+  const records = [];
+  for(let i=1;i<lines.length;i++){
+    const cols = lines[i].split(',').map(c=>c.trim());
+    if(cols.length < header.length) continue;
+    const year=+cols[idx.y], month=+cols[idx.mo], day=+cols[idx.d];
+    const type=cols[idx.type], worktime=+cols[idx.wt], numSesh=+cols[idx.ns];
+    if(!year||!month||!day||!type) continue;
+    const date = new Date(year, month-1, day);
+    records.push({date, dateKey: toLocalISO(date), type, worktime, numSesh});
+  }
+  if(!records.length) throw new Error('No valid data rows found.');
+  return records;
+}
+
+function fmtHours(min){ return Math.round((min/60)*10)/10; }
+
+// Local-date key formatter. toISOString() converts to UTC first, which
+// silently shifts dates back a day in timezones ahead of UTC — this stays
+// in local time so "Monday" always means the browser's local Monday.
+function toLocalISO(date){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function getWeekStartKey(date){
+  const d = new Date(date);
+  const dow = (d.getDay()+6)%7; // 0 = Monday
+  d.setDate(d.getDate()-dow);
+  return toLocalISO(d);
+}
+
+function populateStatsTypeSelect(uniqueTypes){
+  if(!uniqueTypes.includes(activeStatsType)) activeStatsType = 'all';
+  const sel = document.getElementById('statsTypeSelect');
+  sel.innerHTML = '<option value="all">All types</option>' +
+    uniqueTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.value = activeStatsType;
+}
+
+function renderStatsSections(records){
+  const statGrid = document.getElementById('statGrid');
+  const calScroll = document.getElementById('calScroll');
+  const filtered = activeStatsType === 'all' ? records : records.filter(r=>r.type===activeStatsType);
+
+  if(!filtered.length){
+    statGrid.innerHTML = `<div class="stat-card"><div class="stat-label">No sessions</div><div class="stat-value">—</div></div>`;
+    calScroll.innerHTML = '';
+    if(weekdayChart) weekdayChart.destroy();
+    return;
+  }
+
+  const totalMinutes = filtered.reduce((s,r)=>s+r.worktime,0);
+  const totalSessions = filtered.reduce((s,r)=>s+r.numSesh,0);
+
+  const byDay = {};
+  filtered.forEach(r=>{ byDay[r.dateKey] = (byDay[r.dateKey]||0) + r.worktime; });
+  const daysLogged = Object.keys(byDay).length;
+
+  const byWeekday = [0,0,0,0,0,0,0];
+  filtered.forEach(r=>{ const jsDow=r.date.getDay(); const idx=(jsDow+6)%7; byWeekday[idx]+=r.worktime; });
+  let topWeekdayIdx=0; byWeekday.forEach((v,i)=>{ if(v>byWeekday[topWeekdayIdx]) topWeekdayIdx=i; });
+
+  const sortedDayKeys = Object.keys(byDay).sort();
+  let longestStreak=1, curStreak=1;
+  for(let i=1;i<sortedDayKeys.length;i++){
+    const prev = new Date(sortedDayKeys[i-1]), cur = new Date(sortedDayKeys[i]);
+    const diffDays = Math.round((cur-prev)/86400000);
+    curStreak = diffDays===1 ? curStreak+1 : 1;
+    if(curStreak>longestStreak) longestStreak=curStreak;
+  }
+  if(sortedDayKeys.length===0) longestStreak=0;
+
+  const avgSession = totalSessions ? Math.round(totalMinutes/totalSessions) : 0;
+
+  const stats = [
+    ['Total focus time', fmtHours(totalMinutes)+'h'],
+    ['Total sessions', totalSessions],
+    ['Avg session', avgSession+' min'],
+    ['Days logged', daysLogged],
+    ['Longest streak', longestStreak+' day'+(longestStreak===1?'':'s')],
+    ['Top weekday', DOW_LABELS[topWeekdayIdx]]
+  ];
+  statGrid.innerHTML = stats.map(([label,val])=>`
+    <div class="stat-card">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${val}</div>
+    </div>`).join('');
+
+  // Calendar heatmap
+  const months = {};
+  Object.keys(byDay).forEach(k=>{
+    const ym = k.slice(0,7);
+    if(!months[ym]) months[ym]=[];
+    months[ym].push(k);
+  });
+  const maxDayMinutes = Math.max(...Object.values(byDay), 1);
+  calScroll.innerHTML='';
+  Object.keys(months).sort().forEach(ym=>{
+    const [y,m] = ym.split('-').map(Number);
+    const firstDow = (new Date(y,m-1,1).getDay()+6)%7;
+    const daysInMonth = new Date(y,m,0).getDate();
+    const monthLabel = new Date(y,m-1,1).toLocaleDateString(undefined,{month:'short',year:'numeric'});
+    let cells='';
+    for(let i=0;i<firstDow;i++) cells+='<div class="cal-cell" style="background:transparent"></div>';
+    for(let d=1; d<=daysInMonth; d++){
+      const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const mins = byDay[key]||0;
+      const intensity = mins ? 0.25 + 0.75*(mins/maxDayMinutes) : 0;
+      const bgColor = mins ? `rgba(232,84,58,${intensity.toFixed(2)})` : 'var(--surface-2)';
+      cells += `<div class="cal-cell" title="${key}: ${mins} min" style="background:${bgColor}"></div>`;
+    }
+    const dow = `<div class="cal-dow">${DOW_LABELS.map(d=>`<span>${d[0]}</span>`).join('')}</div>`;
+    const block = document.createElement('div');
+    block.className='cal-month';
+    block.innerHTML = `<h4>${monthLabel}</h4>${dow}<div class="cal-grid">${cells}</div>`;
+    calScroll.appendChild(block);
+  });
+
+  // Weekday chart
+  const mutedColor = '#A99C86';
+  const weekdayBarColor = activeStatsType === 'all' ? '#E8A23A' : (currentTypeColors[activeStatsType] || '#E8A23A');
+  if(weekdayChart) weekdayChart.destroy();
+  weekdayChart = new Chart(document.getElementById('weekdayChart'), {
+    type:'bar',
+    data:{
+      labels: DOW_LABELS,
+      datasets:[{ data: byWeekday.map(fmtHours), backgroundColor: weekdayBarColor, borderRadius:4, maxBarThickness:28 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' h' } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:mutedColor} },
+        y:{ grid:{color:'#2A241A'}, ticks:{color:mutedColor}, title:{display:true,text:'hours',color:mutedColor} }
+      }
+    }
+  });
+}
+
+function render(records){
+  if(!records.length){
+    document.getElementById('dateRangeSub').textContent =
+      `No sessions in this range — ${allRecords.length} total logged. Try a wider range.`;
+    document.getElementById('typeLegend').innerHTML='';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('calScroll').innerHTML='';
+    document.getElementById('dialNumber').textContent='0';
+    document.getElementById('dialSvg').innerHTML='';
+    currentByDay={}; currentByWeek={};
+    currentByDayByType={}; currentByWeekByType={};
+    lastRangeRecords=[];
+    document.getElementById('trendTypeSelect').innerHTML = '<option value="all">All types</option>';
+    document.getElementById('statsTypeSelect').innerHTML = '<option value="all">All types</option>';
+    if(typeChart) typeChart.destroy();
+    if(weekdayChart) weekdayChart.destroy();
+    if(trendChart) trendChart.destroy();
+    return;
+  }
+  records.sort((a,b)=>a.date-b.date);
+  const minDate = records[0].date, maxDate = records[records.length-1].date;
+  const fmt = d => d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+  const totalSuffix = records.length !== allRecords.length ? ` (${allRecords.length} total logged)` : '';
+  document.getElementById('dateRangeSub').textContent =
+    `${records.length} session${records.length===1?'':'s'} logged from ${fmt(minDate)} to ${fmt(maxDate)}${totalSuffix}.`;
+
+  const totalMinutes = records.reduce((s,r)=>s+r.worktime,0);
+  const uniqueTypes = [...new Set(records.map(r=>r.type))].sort();
+  const colorOf = t => PALETTE[uniqueTypes.indexOf(t) % PALETTE.length];
+
+  currentTypeColors = {};
+  uniqueTypes.forEach(t=>{ currentTypeColors[t] = colorOf(t); });
+
+  const byType = {};
+  uniqueTypes.forEach(t=>byType[t]={minutes:0,sessions:0});
+  records.forEach(r=>{ byType[r.type].minutes+=r.worktime; byType[r.type].sessions+=r.numSesh; });
+
+  const byDayByType = {}, byWeekByType = {};
+  uniqueTypes.forEach(t=>{ byDayByType[t]={}; byWeekByType[t]={}; });
+  records.forEach(r=>{
+    byDayByType[r.type][r.dateKey] = (byDayByType[r.type][r.dateKey]||0) + r.worktime;
+    const wk = getWeekStartKey(r.date);
+    byWeekByType[r.type][wk] = (byWeekByType[r.type][wk]||0) + r.worktime;
+  });
+
+  const byDay = {};
+  records.forEach(r=>{ byDay[r.dateKey] = (byDay[r.dateKey]||0) + r.worktime; });
+
+  const byWeek = {};
+  records.forEach(r=>{
+    const wk = getWeekStartKey(r.date);
+    byWeek[wk] = (byWeek[wk]||0) + r.worktime;
+  });
+
+  // Hero dial
+  document.getElementById('dialNumber').textContent = fmtHours(totalMinutes);
+  const svg = document.getElementById('dialSvg');
+  svg.innerHTML='';
+  const r=82, cx=98, cy=98, circumference=2*Math.PI*r;
+  const bg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+  bg.setAttribute('fill','none'); bg.setAttribute('stroke','#2A241A'); bg.setAttribute('stroke-width','14');
+  svg.appendChild(bg);
+  let cumulative=0;
+  uniqueTypes.forEach(t=>{
+    const frac = totalMinutes ? byType[t].minutes/totalMinutes : 0;
+    const len = frac*circumference;
+    const gap = 2;
+    const seg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    seg.setAttribute('cx',cx); seg.setAttribute('cy',cy); seg.setAttribute('r',r);
+    seg.setAttribute('fill','none');
+    seg.setAttribute('stroke', colorOf(t));
+    seg.setAttribute('stroke-width','14');
+    seg.setAttribute('stroke-linecap','butt');
+    seg.setAttribute('stroke-dasharray', `${Math.max(len-gap,0)} ${circumference-Math.max(len-gap,0)}`);
+    seg.setAttribute('stroke-dashoffset', -cumulative);
+    svg.appendChild(seg);
+    cumulative += len;
+  });
+
+  const legend = document.getElementById('typeLegend');
+  legend.innerHTML = uniqueTypes.map(t=>`
+    <div class="legend-row">
+      <span class="swatch" style="background:${colorOf(t)}"></span>
+      <span class="legend-name">${t}</span>
+      <span class="legend-val">${fmtHours(byType[t].minutes)}h · ${byType[t].sessions} sessions</span>
+    </div>`).join('');
+
+  // Charts
+  const mutedColor = '#A99C86';
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.color = mutedColor;
+
+  if(typeChart) typeChart.destroy();
+  typeChart = new Chart(document.getElementById('typeChart'), {
+    type:'bar',
+    data:{
+      labels: uniqueTypes,
+      datasets:[{ data: uniqueTypes.map(t=>fmtHours(byType[t].minutes)), backgroundColor: uniqueTypes.map(colorOf), borderRadius:4, maxBarThickness:28 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' h' } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:mutedColor} },
+        y:{ grid:{color:'#2A241A'}, ticks:{color:mutedColor}, title:{display:true,text:'hours',color:mutedColor} }
+      }
+    }
+  });
+
+  currentByDay = byDay;
+  currentByWeek = byWeek;
+  currentByDayByType = byDayByType;
+  currentByWeekByType = byWeekByType;
+
+  if(!uniqueTypes.includes(activeTrendType)) activeTrendType = 'all';
+  const typeSelect = document.getElementById('trendTypeSelect');
+  typeSelect.innerHTML = '<option value="all">All types</option>' +
+    uniqueTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+  typeSelect.value = activeTrendType;
+
+  renderTrendChart(activeTrendGranularity);
+
+  // Stats / daily activity / weekday — filterable by type independently of trend
+  lastRangeRecords = records.slice();
+  populateStatsTypeSelect(uniqueTypes);
+  renderStatsSections(lastRangeRecords);
+}
+
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function renderTrendChart(granularity){
+  activeTrendGranularity = granularity;
+  const mutedColor = '#A99C86';
+  const isAll = activeTrendType === 'all';
+  const dayMap = isAll ? currentByDay : (currentByDayByType[activeTrendType] || {});
+  const weekMap = isAll ? currentByWeek : (currentByWeekByType[activeTrendType] || {});
+  const source = granularity === 'week' ? weekMap : dayMap;
+  const lineColor = isAll ? '#E8543A' : (currentTypeColors[activeTrendType] || '#E8543A');
+  const keys = Object.keys(source).sort();
+  const labels = keys.map(k=>{
+    const d = new Date(k + 'T00:00:00');
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  });
+  const data = keys.map(k=>fmtHours(source[k]));
+
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data,
+        borderColor:lineColor, backgroundColor:hexToRgba(lineColor,0.1),
+        fill:true, tension: granularity==='week' ? 0.15 : 0.25,
+        pointRadius: granularity==='week' ? 3 : 2,
+        pointBackgroundColor:lineColor, borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{
+          title: ctx => granularity==='week' ? 'Week of ' + ctx[0].label : ctx[0].label,
+          label: ctx => (isAll ? '' : activeTrendType + ': ') + ctx.parsed.y + ' h'
+        } }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:mutedColor, maxRotation:45, autoSkip:true, maxTicksLimit:12 } },
+        y:{ grid:{color:'#2A241A'}, ticks:{color:mutedColor}, title:{display:true,text:'hours',color:mutedColor} }
+      }
+    }
+  });
+}
+
+document.getElementById('trendTypeSelect').addEventListener('change', e=>{
+  activeTrendType = e.target.value;
+  renderTrendChart(activeTrendGranularity);
+});
+
+document.getElementById('trendToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('.seg-btn');
+  if(!btn) return;
+  document.querySelectorAll('#trendToggle .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTrendChart(btn.dataset.granularity);
+});
+
+document.getElementById('statsTypeSelect').addEventListener('change', e=>{
+  activeStatsType = e.target.value;
+  renderStatsSections(lastRangeRecords);
+});
+
+function applyRangeFilter(){
+  if(!allRecords.length) return;
+  if(activeRangeDays === 'all'){
+    render(allRecords.slice());
+    return;
+  }
+  const cutoff = new Date(globalMaxDate);
+  cutoff.setDate(cutoff.getDate() - (activeRangeDays - 1));
+  cutoff.setHours(0,0,0,0);
+  const filtered = allRecords.filter(r => r.date >= cutoff);
+  render(filtered);
+}
+
+function tryRender(text){
+  const errBox = document.getElementById('parseError');
+  try{
+    const records = parseCSV(text);
+    errBox.style.display='none';
+    allRecords = records.slice().sort((a,b)=>a.date-b.date);
+    globalMaxDate = allRecords[allRecords.length-1].date;
+    applyRangeFilter();
+  }catch(e){
+    errBox.textContent = 'Could not parse CSV — ' + e.message;
+    errBox.style.display='block';
+  }
+}
+
+document.getElementById('rangeToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('.seg-btn');
+  if(!btn) return;
+  document.querySelectorAll('#rangeToggle .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeRangeDays = btn.dataset.range === 'all' ? 'all' : Number(btn.dataset.range);
+  applyRangeFilter();
+});
+
+document.getElementById('csvInput').value = DEFAULT_CSV;
+document.getElementById('updateBtn').addEventListener('click', ()=>{
+  tryRender(document.getElementById('csvInput').value);
+  setFileStatus('Showing pasted text', false);
+});
+
+const fileStatusEl = document.getElementById('fileStatus');
+const fileStatusText = document.getElementById('fileStatusText');
+function setFileStatus(text, live){
+  fileStatusText.textContent = text;
+  fileStatusEl.classList.toggle('live', !!live);
+}
+
+let activeFileHandle = null; // FileSystemFileHandle, when available
+
+async function loadFromFile(file){
+  const text = await file.text();
+  tryRender(text);
+  setFileStatus(`Loaded ${file.name}`, true);
+}
+
+async function loadFromHandle(handle){
+  const file = await handle.getFile();
+  await loadFromFile(file);
+}
+
+const chooseFileBtn = document.getElementById('chooseFileBtn');
+const reloadFileBtn = document.getElementById('reloadFileBtn');
+const fileInput = document.getElementById('fileInput');
+
+chooseFileBtn.addEventListener('click', async ()=>{
+  if(window.showOpenFilePicker){
+    try{
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description:'CSV files', accept:{ 'text/csv':['.csv'] } }],
+        excludeAcceptAllOption:false
+      });
+      activeFileHandle = handle;
+      await loadFromHandle(handle);
+      reloadFileBtn.style.display='inline-block';
+    }catch(err){
+      if(err.name !== 'AbortError'){
+        document.getElementById('parseError').style.display='block';
+        document.getElementById('parseError').textContent = 'Could not open file — ' + err.message;
+      }
+    }
+  } else {
+    fileInput.click();
+  }
+});
+
+fileInput.addEventListener('change', async ()=>{
+  const file = fileInput.files[0];
+  if(!file) return;
+  activeFileHandle = null;
+  reloadFileBtn.style.display='none';
+  await loadFromFile(file);
+});
+
+reloadFileBtn.addEventListener('click', async ()=>{
+  if(!activeFileHandle) return;
+  try{
+    if(activeFileHandle.queryPermission){
+      const perm = await activeFileHandle.queryPermission({mode:'read'});
+      if(perm !== 'granted') await activeFileHandle.requestPermission({mode:'read'});
+    }
+    await loadFromHandle(activeFileHandle);
+  }catch(err){
+    document.getElementById('parseError').style.display='block';
+    document.getElementById('parseError').textContent = 'Could not reload file — ' + err.message;
+  }
+});
+
+const dropzone = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.add('drag-over'); });
+});
+['dragleave','drop'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.remove('drag-over'); });
+});
+dropzone.addEventListener('drop', async e=>{
+  const items = e.dataTransfer.items;
+  activeFileHandle = null;
+  reloadFileBtn.style.display='none';
+  if(items && items.length && items[0].getAsFileSystemHandle){
+    try{
+      const handle = await items[0].getAsFileSystemHandle();
+      if(handle.kind === 'file'){
+        activeFileHandle = handle;
+        await loadFromHandle(handle);
+        reloadFileBtn.style.display='inline-block';
+        return;
+      }
+    }catch(err){ /* fall through to plain file read */ }
+  }
+  const file = e.dataTransfer.files[0];
+  if(file) await loadFromFile(file);
+});
+
+if(DEFAULT_CSV === '__CSV_DATA_PLACEHOLDER__'){
+  setFileStatus('No data loaded — choose a CSV file above', false);
+} else {
+  tryRender(DEFAULT_CSV);
+}
+</script>
+</body>
+</html>

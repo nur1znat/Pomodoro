@@ -1,14 +1,11 @@
-#include <iostream>
+#include <boost/program_options.hpp>
+#include "timr.h"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <vector>
-#include <filesystem>
 #include <random>
 #include <cstdlib>
 #include <cstring>
-#include <boost/program_options.hpp>
-#include "timr.h"
 
 using namespace std;
 using namespace boost::program_options;
@@ -23,11 +20,11 @@ namespace fs = std::filesystem;
 
 static const string PLACEHOLDER = "\"__CSV_DATA_PLACEHOLDER__\"";
 
-std::string readFile(const fs::path& filePath) {
-    std::ifstream file(filePath);
-    if (!file.is_open()) return "";
-    std::stringstream ss;
-    ss << file.rdbuf();
+static string readFile(const fs::path& p) {
+    ifstream f(p, ios::binary);
+    if (!f) throw runtime_error("Could not open file: " + p.string());
+    ostringstream ss;
+    ss << f.rdbuf();
     return ss.str();
 }
 
@@ -112,215 +109,83 @@ static fs::path pickCsvFile(const fs::path& pomodoroDir) {
     return files[choice - 1];
 }
 
+static int runPlotCommand(int argc, char* argv[]) {
+    string csvArg, templateArg, outArg;
+    bool noOpen = false;
 
-// Helper: Escape CSV content string for JavaScript double-quoted literals
-std::string escapeForJS(const std::string& input) {
-    std::string out;
-    out.reserve(input.size() * 1.1);
-    for (char c : input) {
-        if (c == '"') out += "\\\"";
-        else if (c == '\\') out += "\\\\";
-        else if (c == '\n') out += "\\n";
-        else if (c == '\r') continue;
-        else out += c;
+    try {
+        options_description desc("Pomodoro plot options");
+        desc.add_options()
+            ("help", "Usage:")
+            ("csv", value(&csvArg), "CSV file to plot (default: auto-detect in ~/.pomodoro)")
+            ("template", value(&templateArg), "Dashboard HTML template (default: ~/.pomodoro/pomodoro-dashboard.html)")
+            ("out", value(&outArg), "Where to write the generated HTML (default: a temp file that opens automatically)")
+            ("no-open", bool_switch(&noOpen), "Only generate the HTML file, don't open a browser");
+
+        variables_map vm;
+        store(parse_command_line(argc, argv, desc, command_line_style::unix_style ^ command_line_style::allow_short), vm);
+        notify(vm);
+
+        if (vm.count("help")) {
+            cout << desc << "\n";
+            return 0;
+        }
+    } catch (exception& e) {
+        cerr << e.what() << "\n";
+        return 1;
     }
-    return out;
-}
 
-// -------------------------------------------------------------
-// 1. PLOT COMMAND (Single User Dashboard)
-// -------------------------------------------------------------
-int runPlotCommand(int argc, char* argv[]) {
     const char* home = getenv("HOME");
     if (!home) {
-        std::cerr << "Error: $HOME environment variable not set.\n";
+        cerr << "Could not determine HOME directory.\n";
+        return 1;
+    }
+    fs::path pomodoroDir = fs::path(home) / ".pomodoro";
+
+    fs::path csvPath      = csvArg.empty()      ? pickCsvFile(pomodoroDir)                        : fs::path(csvArg);
+    fs::path templatePath = templateArg.empty() ? (pomodoroDir / "pomodoro-dashboard.html")        : fs::path(templateArg);
+    fs::path outPath      = outArg.empty()       ? makeTempHtmlPath()                              : fs::path(outArg);
+
+    if (!fs::is_regular_file(csvPath)) {
+        cerr << "CSV file not found: " << csvPath.string() << "\n";
+        return 1;
+    }
+    if (!fs::is_regular_file(templatePath)) {
+        cerr << "Dashboard template not found: " << templatePath.string() << "\n"
+             << "Place pomodoro-dashboard.html there, or pass --template PATH.\n";
         return 1;
     }
 
-    fs::path pmoDir = fs::path(home) / ".pomodoro";
-    fs::path templatePath = pmoDir / "pomodoro-dashboard.html";
-    fs::path outputPath = fs::path("/tmp") / "pomodoro_dashboard.html";
+    string csvText      = readFile(csvPath);
+    string templateHtml = readFile(templatePath);
 
-    std::string csvData;
-
-    if (argc >= 1) {
-        csvData = readFile(argv[0]);
-    } else {
-        // Auto-detect first CSV file in ~/.pomodoro/
-        if (fs::exists(pmoDir)) {
-            for (const auto& entry : fs::directory_iterator(pmoDir)) {
-                if (entry.path().extension() == ".csv") {
-                    csvData = readFile(entry.path());
-                    std::cout << "Auto-selected: " << entry.path().filename().string() << "\n";
-                    break;
-                }
-            }
-        }
-    }
-
-    if (csvData.empty()) {
-        std::cerr << "Error: No valid CSV file provided or found in " << pmoDir.string() << "\n";
+    auto pos = templateHtml.find(PLACEHOLDER);
+    if (pos == string::npos) {
+        cerr << "Could not find the data placeholder in the template. "
+                "Make sure you're using the matching pomodoro-dashboard.html.\n";
         return 1;
     }
+    templateHtml.replace(pos, PLACEHOLDER.size(), jsonEscape(csvText));
+    writeFile(outPath, templateHtml);
 
-    std::string htmlContent = readFile(templatePath);
-    if (htmlContent.empty()) {
-        std::cerr << "Error: Could not read template at " << templatePath.string() << "\n";
-        return 1;
-    }
+    cout << "Dashboard written to: " << fs::absolute(outPath).string() << "\n";
+    if (!noOpen) openInBrowser(outPath);
 
-    std::string escapedCsv = escapeForJS(csvData);
-    size_t pos = htmlContent.find("__CSV_DATA_PLACEHOLDER__");
-    if (pos != std::string::npos) {
-        htmlContent.replace(pos, std::string("__CSV_DATA_PLACEHOLDER__").length(), escapedCsv);
-    }
-
-    std::ofstream outFile(outputPath);
-    if (!outFile.is_open()) {
-        std::cerr << "Error: Could not write output file to " << outputPath.string() << "\n";
-        return 1;
-    }
-    outFile << htmlContent;
-    outFile.close();
-
-    std::string openCmd = "xdg-open " + outputPath.string() + " > /dev/null 2>&1 &";
-    system(openCmd.c_str());
-
-    std::cout << "Dashboard launched: " << outputPath.string() << "\n";
     return 0;
 }
 
-// -------------------------------------------------------------
-// 2. BATTLE COMMAND (Head-to-Head Competition)
-// -------------------------------------------------------------
-int runBattleCommand(int argc, char* argv[]) {
-    const char* home = getenv("HOME");
-    if (!home) {
-        std::cerr << "Error: $HOME environment variable not set.\n";
-        return 1;
-    }
-
-    fs::path pmoDir = fs::path(home) / ".pomodoro";
-    fs::path templatePath = pmoDir / "pomodoro-dashboard-vs.html";
-    fs::path otherPlayerPath = pmoDir / "OtherPerson";
-    fs::path outputPath = fs::path("/tmp") / "pomodoro_vs_dashboard.html";
-
-    std::string p1Csv, p2Csv;
-    std::string p1Name = "Player 1", p2Name = "Player 2";
-
-    // 1. Resolve CSV files & derive Player Names using stem()
-    if (argc >= 2) {
-        fs::path file1(argv[0]);
-        fs::path file2(argv[1]);
-        p1Csv = readFile(file1);
-        p2Csv = readFile(file2);
-        p1Name = file1.stem().string();
-        p2Name = file2.stem().string();
-    } else if (argc == 1) {
-        fs::path file1(argv[0]);
-        p1Csv = readFile(file1);
-        p1Name = file1.stem().string();
-
-        if (fs::exists(otherPlayerPath)) {
-            for (const auto& entry : fs::directory_iterator(otherPlayerPath)) {
-                if (entry.path().extension() == ".csv" && entry.path() != file1) {
-                    p2Csv = readFile(entry.path());
-                    p2Name = entry.path().stem().string();
-                    break;
-                }
-            }
-        }
-    } else {
-        std::vector<fs::path> csvFiles;
-        if (fs::exists(pmoDir)) {
-            for (const auto& entry : fs::directory_iterator(pmoDir)) {
-                if (entry.path().extension() == ".csv") {
-                    csvFiles.push_back(entry.path());
-                }
-            }
-        }
-
-        if (fs::exists(otherPlayerPath)) {
-            for (const auto& entry : fs::directory_iterator(otherPlayerPath)) {
-                if (entry.path().extension() == ".csv") {
-                    csvFiles.push_back(entry.path());
-                }
-            }
-        }
-
-        if (csvFiles.empty()) {
-            std::cerr << "Error: No CSV files found in " << pmoDir.string() << "\n";
-            return 1;
-        }
-
-        p1Csv = readFile(csvFiles[0]);
-        p1Name = csvFiles[0].stem().string();
-
-        if (csvFiles.size() >= 2) {
-            p2Csv = readFile(csvFiles[1]);
-            p2Name = csvFiles[1].stem().string();
-            std::cout << "Battle: " << p1Name << " VS " << p2Name << "\n";
-        }
-    }
-
-    // 2. Read template
-    std::string htmlContent = readFile(templatePath);
-    if (htmlContent.empty()) {
-        std::cerr << "Error: Could not read VS template at " << templatePath.string() << "\n";
-        return 1;
-    }
-
-    // 3. Helper lambda for string replacement
-    auto replaceAll = [&htmlContent](const std::string& placeholder, const std::string& value) {
-        size_t pos = htmlContent.find(placeholder);
-        if (pos != std::string::npos) {
-            htmlContent.replace(pos, placeholder.length(), value);
-        }
-    };
-
-    // 4. Inject CSV data and Player Names
-    replaceAll("__CSV_DATA_P1_PLACEHOLDER__", escapeForJS(p1Csv));
-    replaceAll("__CSV_DATA_P2_PLACEHOLDER__", escapeForJS(p2Csv));
-    replaceAll("__P1_NAME_PLACEHOLDER__", escapeForJS(p1Name));
-    replaceAll("__P2_NAME_PLACEHOLDER__", escapeForJS(p2Name));
-
-    // 5. Output file & Launch browser
-    std::ofstream outFile(outputPath);
-    if (!outFile.is_open()) {
-        std::cerr << "Error: Could not write output file to " << outputPath.string() << "\n";
-        return 1;
-    }
-    outFile << htmlContent;
-    outFile.close();
-
-    std::string openCmd = "xdg-open " + outputPath.string() + " > /dev/null 2>&1 &";
-    system(openCmd.c_str());
-
-    std::cout << "Battle Dashboard launched: " << outputPath.string() << "\n";
-    return 0;
-}
-
+// =====================================================================
+// existing pomodoro timer app
+// =====================================================================
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <command> [args...]\n";
-        return 1;
-    }
-
-    std::string command = argv[1];
-
-if (argc >= 2) {
-        std::string command = argv[1];
-        if (command == "plot") {
-            return runPlotCommand(argc - 2, argv + 2);
-        } else if (command == "battle") {
-            return runBattleCommand(argc - 2, argv + 2);
-        }
-}
-// "pomodoro plot [--csv PATH] [--template PATH] [--out PATH] [--no-open]"
-    // Che}cked before the normal option parsing so it never collides with
+    // "pomodoro plot [--csv PATH] [--template PATH] [--out PATH] [--no-open]"
+    // Checked before the normal option parsing so it never collides with
     // --wt/--sb/etc, and so a bare "pomodoro plot" just works.
+    if (argc > 1 && string(argv[1]) == "plot") {
+        return runPlotCommand(argc - 1, argv + 1);
+    }
 
 	unsigned int w_time = 25; // bari minutpen Work time
 	unsigned int sb_time = 5; // Short break
