@@ -139,7 +139,7 @@ int runPlotCommand(int argc, char* argv[]) {
 
     fs::path pmoDir = fs::path(home) / ".pomodoro";
     fs::path templatePath = pmoDir / "pomodoro-dashboard.html";
-    fs::path outputPath = fs::path("/tmp") / "pomodoro_dashboard.html";
+    fs::path outputPath = fs::path("/tmp") / "pomodoro-dashboard.html";
 
     std::string csvData;
 
@@ -203,7 +203,7 @@ int runBattleCommand(int argc, char* argv[]) {
     fs::path pmoDir = fs::path(home) / ".pomodoro";
     fs::path templatePath = pmoDir / "pomodoro-dashboard-vs.html";
     fs::path otherPlayerPath = pmoDir / "OtherPerson";
-    fs::path outputPath = fs::path("/tmp") / "pomodoro_vs_dashboard.html";
+    fs::path outputPath = fs::path("/tmp") / "pomodoro-dashboard-vs.html";
 
     std::string p1Csv, p2Csv;
     std::string p1Name = "Player 1", p2Name = "Player 2";
